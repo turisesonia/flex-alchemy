@@ -3,13 +3,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Selectable
 
+from .session import SessionHandler
 
-class ActiveRecord:
-    _db = None
 
-    @classmethod
-    def set_session(cls, session):
-        cls._db = session
+class ActiveRecord(SessionHandler):
 
     @classmethod
     def select(cls, *entities, **kw):
