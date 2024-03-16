@@ -16,10 +16,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
-from sqlalchemy_model import AllFeature
+from sqlalchemy_model import ActiveRecord, TimestampMixin, SoftDeleteMixin
 
 
-class Base(DeclarativeBase):
+class Base(DeclarativeBase, ActiveRecord):
 
     def __repr__(self) -> str:
         """Returns representation of the object"""
@@ -32,7 +32,7 @@ class Base(DeclarativeBase):
         )
 
 
-class User(Base, AllFeature):
+class User(Base, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "users"
     __repr_attrs__ = ("id", "email", "name")
 

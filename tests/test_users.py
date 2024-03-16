@@ -12,26 +12,18 @@ def email(faker):
     return faker.email()
 
 
-def test_find(email, name):
-    u = User.create(
-        email=email,
-        name=name,
-        password="password",
-    )
-
-    user = User.find(u.id)
+def test_create(email, name):
+    user = User.create(email=email, name=name, password="password")
 
     assert isinstance(user, User)
     assert user.email == email
     assert user.name == name
 
 
-def test_create(email, name):
-    user = User.create(
-        email=email,
-        name=name,
-        password="password",
-    )
+def test_find(email, name):
+    user = User.create(email=email, name=name, password="password")
+
+    user = User.find(user.id)
 
     assert isinstance(user, User)
     assert user.email == email
@@ -39,11 +31,7 @@ def test_create(email, name):
 
 
 def test_save(email, name):
-    user = User(
-        email=email,
-        name=name,
-        password="password",
-    )
+    user = User(email=email, name=name, password="password")
 
     user.save()
 
