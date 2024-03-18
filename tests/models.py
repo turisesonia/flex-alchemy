@@ -20,7 +20,6 @@ from sqlalchemy_model import ActiveRecord, TimestampMixin, SoftDeleteMixin
 
 
 class Base(DeclarativeBase, ActiveRecord):
-
     def __repr__(self) -> str:
         """Returns representation of the object"""
 

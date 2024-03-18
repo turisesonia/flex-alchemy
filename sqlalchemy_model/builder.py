@@ -1,18 +1,19 @@
 import math
 
-from typing import Optional, Generic, TypeVar, Iterable
+from typing import Optional, Generic, Iterable, TypeVar
 from sqlalchemy import select, func
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.sql import Select
 
+_M = TypeVar("_M")
 
-T = TypeVar("T")
 
+class QueryBuilder(Generic[_M]):
+    _model: _M
 
-class QueryBuilder:
-    def __init__(self, session: scoped_session, model: Generic[T]):
-        self._session = session
-        self._model = model
+    def __init__(self, session: scoped_session, model: _M):
+        self._session: scoped_session = session
+        self._model: _M = model
         self._select_entities = []
         self._where_clauses = []
         self._order_clauses = []
@@ -77,12 +78,12 @@ class QueryBuilder:
 
         return self
 
-    def first(self, stmt: Optional[Select] = None) -> T:
+    def first(self, stmt: Optional[Select] = None) -> Optional[_M]:
         stmt = stmt if stmt is not None else self._get_stmt()
 
         return self._session.scalar(stmt)
 
-    def get(self, stmt: Optional[Select] = None) -> Iterable[T]:
+    def get(self, stmt: Optional[Select] = None) -> Iterable[_M]:
         stmt = stmt if stmt is not None else self._get_stmt()
 
         return self._session.scalars(stmt).all()

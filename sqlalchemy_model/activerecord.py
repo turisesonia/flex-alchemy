@@ -1,5 +1,5 @@
+from typing import Sequence
 from datetime import datetime
-
 from .session import SessionHandler
 from .builder import QueryBuilder
 from .mixins.timestamp import TimestampMixin
@@ -19,7 +19,7 @@ class ActiveRecord(SessionHandler, TimestampMixin):
         return cls()._new_query().where(cls.id == id_).first()
 
     @classmethod
-    def all(cls):
+    def all(cls) -> Sequence:
         return cls()._new_query().get()
 
     @classmethod
@@ -57,9 +57,7 @@ class ActiveRecord(SessionHandler, TimestampMixin):
         return instance
 
     def _new_query(self) -> "QueryBuilder":
-        builder = QueryBuilder(self._session, self.__class__)
-
-        return builder
+        return QueryBuilder(self._session, self.__class__)
 
     def _is_softdeleted(self) -> bool:
         return hasattr(self, "deleted_at")

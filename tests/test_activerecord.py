@@ -1,4 +1,6 @@
 import pytest
+
+from typing import Sequence
 from .models import User
 
 
@@ -35,6 +37,7 @@ def test_save(email, name):
 
     user.save()
 
+    assert isinstance(user.id, int)
     assert isinstance(user, User)
     assert user.email == email
     assert user.name == name
@@ -63,4 +66,7 @@ def test_all(email, name):
 
     users = User.all()
 
-    assert isinstance(users, list)
+    assert isinstance(users, Sequence)
+
+    for user in users:
+        assert isinstance(user, User)
