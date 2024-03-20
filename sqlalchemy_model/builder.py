@@ -76,13 +76,13 @@ class QueryBuilder(Generic[_M]):
 
         return self
 
-    def first(self, stmt: Optional[Select] = None) -> Optional[_M]:
-        stmt = stmt if stmt is not None else self._select_stmt()
+    def first(self, stmt: Optional[Select] = None, **kwargs) -> Optional[_M]:
+        stmt = stmt if stmt is not None else self._select_stmt(**kwargs)
 
         return self._session.scalar(stmt)
 
-    def get(self, stmt: Optional[Select] = None) -> Iterable[_M]:
-        stmt = stmt if stmt is not None else self._select_stmt()
+    def get(self, stmt: Optional[Select] = None, **kwargs) -> Iterable[_M]:
+        stmt = stmt if stmt is not None else self._select_stmt(**kwargs)
 
         return self._session.scalars(stmt).all()
 
@@ -90,18 +90,11 @@ class QueryBuilder(Generic[_M]):
         for _, scope in self._scopes.items():
             scope.boot(self)
 
-    def _set_macros(self, name: str, callback: Callable):
-        self._macros[name] = callback
-
-    def _remove_scope(self, scope_class):
-        if scope_class in self._scopes:
-            self._scopes.pop(scope_class)
-
     def _get_model_class(self):
         return self._model.__class__
 
     def _select_stmt(
-        self, stmt: Optional[Select] = None, pageable: bool = False
+        self, stmt: Optional[Select] = None, pageable: bool = False, **kwargs
     ) -> Select:
         if not stmt:
             stmt = (
@@ -112,7 +105,7 @@ class QueryBuilder(Generic[_M]):
 
         # apply scopes query
         for _, scope in self._scopes.items():
-            scope.apply()
+            scope.apply(**kwargs)
 
         if self._where_clauses:
             stmt = stmt.where(*self._where_clauses)
@@ -156,23 +149,3 @@ class QueryBuilder(Generic[_M]):
             stmt = stmt.where(*self._where_clauses)
 
         return stmt
-
-    def __getattr__(self, name: str, *args, **kwargs):
-        return self.__dynamic(name)
-
-    def __dynamic(self, name: str):
-        is_macro = False
-
-        attr = None
-        if name in self._macros:
-            is_macro = True
-            attr = self._macros[name]
-
-        def call(*args, **kwargs):
-            if is_macro:
-                return attr(*args, **kwargs)
-
-        if not callable(attr):
-            return attr
-
-        return call

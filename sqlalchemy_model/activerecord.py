@@ -10,16 +10,16 @@ class ActiveRecord(SessionHandler):
         return cls()._new_query().select(*entities)
 
     @classmethod
-    def first(cls):
-        return cls()._new_query().first()
+    def first(cls, **kwargs):
+        return cls()._new_query().first(**kwargs)
 
     @classmethod
-    def find(cls, id_: int):
-        return cls()._new_query().where(cls.id == id_).first()
+    def find(cls, id_: int, **kwargs):
+        return cls()._new_query().where(cls.id == id_).first(**kwargs)
 
     @classmethod
-    def all(cls) -> Sequence:
-        return cls()._new_query().get()
+    def all(cls, **kwargs) -> Sequence:
+        return cls()._new_query().get(**kwargs)
 
     @classmethod
     def where(cls, *express):

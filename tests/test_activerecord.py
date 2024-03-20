@@ -65,7 +65,6 @@ def test_all(email, name):
     )
 
     users = User.all()
-
     assert isinstance(users, Sequence)
 
     for user in users:
@@ -84,10 +83,9 @@ def test_soft_delete_self(faker):
     assert isinstance(User.where(User.email == email).first(), User)
 
     user.delete()
-
     assert User.where(User.email == email).first() is None
 
-    trashed_user = User.select().with_trashed().where(User.email == email).first()
+    trashed_user = User.select().where(User.email == email).first(with_trashed=True)
     assert isinstance(trashed_user, User)
 
 
@@ -103,8 +101,7 @@ def test_force_delete_soft_delete_self(faker):
     assert isinstance(User.where(User.email == email).first(), User)
 
     user.delete(force=True)
-
     assert User.where(User.email == email).first() is None
 
-    trashed_user = User.select().with_trashed().where(User.email == email).first()
+    trashed_user = User.select().where(User.email == email).first(with_trashed=True)
     assert trashed_user is None
