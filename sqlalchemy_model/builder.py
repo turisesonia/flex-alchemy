@@ -1,7 +1,7 @@
 import math
 
 from typing import Optional, Generic, Iterable, TypeVar, Callable
-from sqlalchemy import select, func
+from sqlalchemy import inspect, select, delete, func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import Select
 
@@ -23,6 +23,8 @@ class QueryBuilder(Generic[_M]):
 
         self._macros = {}
         self._scopes = scopes
+        self._on_delete: Optional[Callable] = None
+
         self._boot_scopes()
 
     def select(self, *entities):
@@ -50,8 +52,8 @@ class QueryBuilder(Generic[_M]):
         self._limit = per_page
 
         total_rows = self.first(
-            self._get_stmt(
-                select(func.count()).select_from(self._model),
+            self._select_stmt(
+                select(func.count()).select_from(self._get_model_class()),
                 pageable=True,
             )
         )
@@ -75,12 +77,12 @@ class QueryBuilder(Generic[_M]):
         return self
 
     def first(self, stmt: Optional[Select] = None) -> Optional[_M]:
-        stmt = stmt if stmt is not None else self._get_stmt()
+        stmt = stmt if stmt is not None else self._select_stmt()
 
         return self._session.scalar(stmt)
 
     def get(self, stmt: Optional[Select] = None) -> Iterable[_M]:
-        stmt = stmt if stmt is not None else self._get_stmt()
+        stmt = stmt if stmt is not None else self._select_stmt()
 
         return self._session.scalars(stmt).all()
 
@@ -88,21 +90,24 @@ class QueryBuilder(Generic[_M]):
         for _, scope in self._scopes.items():
             scope.boot(self)
 
-    def _set_macros(self, name: str, callable_: Callable):
-        self._macros[name] = callable_
+    def _set_macros(self, name: str, callback: Callable):
+        self._macros[name] = callback
 
     def _remove_scope(self, scope_class):
         if scope_class in self._scopes:
             self._scopes.pop(scope_class)
 
-    def _get_stmt(
+    def _get_model_class(self):
+        return self._model.__class__
+
+    def _select_stmt(
         self, stmt: Optional[Select] = None, pageable: bool = False
     ) -> Select:
         if not stmt:
             stmt = (
                 select(*self._select_entities)
                 if self._select_entities
-                else select(self._model)
+                else select(self._get_model_class())
             )
 
         # apply scopes query
@@ -126,12 +131,39 @@ class QueryBuilder(Generic[_M]):
 
         return stmt
 
+    # * Delete query builder
+    def delete(self, force: bool = False):
+        if self._on_delete and not force:
+            self._on_delete()
+        else:
+            self._do_delete()
+
+        self._session.commit()
+
+    def _set_on_delete(self, callback: Callable):
+        self._on_delete = callback
+
+    def _do_delete(self):
+        if inspect(self._model).persistent:
+            self._session.delete(self._model)
+        else:
+            self._session.execute(self._delete_stmt())
+
+    def _delete_stmt(self):
+        stmt = delete(self._get_model_class())
+
+        if self._where_clauses:
+            stmt = stmt.where(*self._where_clauses)
+
+        return stmt
+
     def __getattr__(self, name: str, *args, **kwargs):
         return self.__dynamic(name)
 
     def __dynamic(self, name: str):
         is_macro = False
 
+        attr = None
         if name in self._macros:
             is_macro = True
             attr = self._macros[name]

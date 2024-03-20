@@ -1,6 +1,5 @@
 from typing import Sequence
 
-from datetime import datetime
 from .session import SessionHandler
 from .builder import QueryBuilder
 
@@ -64,7 +63,7 @@ class ActiveRecord(SessionHandler):
                 scope = base.scope_registry()
                 scopes[scope.__class__] = scope
 
-        return QueryBuilder(self._session, self.__class__, scopes)
+        return QueryBuilder(self._session, self, scopes)
 
     def _is_softdeleted(self) -> bool:
         return hasattr(self, "deleted_at")
@@ -83,25 +82,8 @@ class ActiveRecord(SessionHandler):
 
     def delete(self, force: bool = False):
         try:
-            if self._is_softdeleted and not force:
-                self._softdelete()
-            else:
-                self._session.delete(self)
-                self._session.commit()
+            self._new_query().delete(force)
 
         except Exception as e:
             self._session.rollback()
             raise e
-
-        return True
-
-    def _softdelete(self):
-        try:
-            self.deleted_at = datetime.now()
-            self.save()
-
-        except Exception as e:
-            self._session.rollback()
-            raise e
-
-        return True

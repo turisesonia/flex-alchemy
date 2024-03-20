@@ -3,6 +3,7 @@ import pytest
 from faker import Faker
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine, Engine
+from sqlalchemy.orm import sessionmaker, Session
 from tests.models import Base
 
 
@@ -19,6 +20,13 @@ def faker() -> Faker:
 @pytest.fixture
 def engine() -> Engine:
     return create_engine("sqlite:///:memory:")
+
+
+@pytest.fixture
+def session(engine) -> Session:
+    session = sessionmaker(engine)
+
+    return session()
 
 
 @pytest.fixture(autouse=True)
