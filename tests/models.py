@@ -41,4 +41,3 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     email: Mapped[str] = mapped_column(String(), unique=True)
     password: Mapped[str] = mapped_column(String())
     name: Mapped[str] = mapped_column(String(50))
-    deleted_at: Mapped[datetime] = mapped_column(TIMESTAMP(), nullable=True)

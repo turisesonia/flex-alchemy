@@ -18,17 +18,20 @@ def faker() -> Faker:
 
 @pytest.fixture
 def engine() -> Engine:
-    return create_engine("sqlite:///:memory:", echo=False)
+    return create_engine("sqlite:///:memory:")
 
 
 @pytest.fixture(autouse=True)
 def _test_session(engine):
-    Base.set_engine(engine)
     Base.metadata.create_all(engine)
+
+    engine.echo = True
+    Base.set_engine(engine)
 
     # yield, to let all tests within the scope run
     yield
 
+    engine.echo = False
     Base.remove_scoped_session()
 
 
