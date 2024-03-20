@@ -70,3 +70,41 @@ def test_all(email, name):
 
     for user in users:
         assert isinstance(user, User)
+
+
+def test_soft_delete_self(faker):
+    email = faker.email()
+
+    user = User.create(
+        email=email,
+        name=faker.name(),
+        password=faker.password(),
+    )
+
+    assert isinstance(User.where(User.email == email).first(), User)
+
+    user.delete()
+
+    assert User.where(User.email == email).first() is None
+
+    trashed_user = User.select().with_trashed().where(User.email == email).first()
+    assert isinstance(trashed_user, User)
+
+
+def test_force_delete_soft_delete_self(faker):
+    email = faker.email()
+
+    user = User.create(
+        email=email,
+        name=faker.name(),
+        password=faker.password(),
+    )
+
+    assert isinstance(User.where(User.email == email).first(), User)
+
+    user.delete(force=True)
+
+    assert User.where(User.email == email).first() is None
+
+    trashed_user = User.select().with_trashed().where(User.email == email).first()
+    assert trashed_user is None

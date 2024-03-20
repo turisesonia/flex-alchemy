@@ -1,11 +1,10 @@
 from typing import Sequence
-from datetime import datetime
+
 from .session import SessionHandler
 from .builder import QueryBuilder
-from .mixins.timestamp import TimestampMixin
 
 
-class ActiveRecord(SessionHandler, TimestampMixin):
+class ActiveRecord(SessionHandler):
     @classmethod
     def select(cls, *entities):
         return cls()._new_query().select(*entities)
@@ -57,7 +56,14 @@ class ActiveRecord(SessionHandler, TimestampMixin):
         return instance
 
     def _new_query(self) -> "QueryBuilder":
-        return QueryBuilder(self._session, self.__class__)
+        scopes = {}
+
+        for base in self.__class__.__bases__:
+            if hasattr(base, "scope_registry"):
+                scope = base.scope_registry()
+                scopes[scope.__class__] = scope
+
+        return QueryBuilder(self._session, self, scopes)
 
     def _is_softdeleted(self) -> bool:
         return hasattr(self, "deleted_at")
@@ -76,25 +82,8 @@ class ActiveRecord(SessionHandler, TimestampMixin):
 
     def delete(self, force: bool = False):
         try:
-            if self._is_softdeleted and not force:
-                self._softdelete()
-            else:
-                self._session.delete(self)
-                self._session.commit()
+            self._new_query().delete(force)
 
         except Exception as e:
             self._session.rollback()
             raise e
-
-        return True
-
-    def _softdelete(self):
-        try:
-            self.deleted_at = datetime.now()
-            self.save()
-
-        except Exception as e:
-            self._session.rollback()
-            raise e
-
-        return True
