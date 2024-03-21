@@ -1,21 +1,7 @@
 from typing import List
-from datetime import datetime, date
 
-from sqlalchemy import (
-    func,
-    BigInteger,
-    Integer,
-    SmallInteger,
-    String,
-    Boolean,
-    Date,
-    ForeignKey,
-    TIMESTAMP,
-    Index,
-)
+from sqlalchemy import BigInteger, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
-
 from sqlalchemy_model import ActiveRecord, TimestampMixin, SoftDeleteMixin
 
 
@@ -31,7 +17,7 @@ class Base(DeclarativeBase, ActiveRecord):
         )
 
 
-class User(Base, TimestampMixin, SoftDeleteMixin):
+class User(Base, TimestampMixin):
     __tablename__ = "users"
     __repr_attrs__ = ("id", "email", "name")
 
@@ -41,3 +27,20 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     email: Mapped[str] = mapped_column(String(), unique=True)
     password: Mapped[str] = mapped_column(String())
     name: Mapped[str] = mapped_column(String(50))
+    state: Mapped[bool] = mapped_column(Boolean(), default=True)
+
+    orders: Mapped[List["Order"]] = relationship(back_populates="user")
+
+
+class Order(Base, TimestampMixin, SoftDeleteMixin):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True
+    )
+    user_id: Mapped[int] = mapped_column(BigInteger(), ForeignKey("users.id"))
+    email: Mapped[str] = mapped_column(String(), unique=True)
+    password: Mapped[str] = mapped_column(String())
+    name: Mapped[str] = mapped_column(String(50))
+
+    user: Mapped[User] = relationship(back_populates="orders")

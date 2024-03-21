@@ -1,3 +1,4 @@
+import os
 import pytest
 
 from faker import Faker
@@ -17,23 +18,19 @@ def faker() -> Faker:
     return Faker()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def engine() -> Engine:
     return create_engine("sqlite:///:memory:")
 
 
-@pytest.fixture
-def session(engine) -> Session:
-    session = sessionmaker(engine)
-
-    return session()
-
-
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def _test_session(engine):
+    APP_DEBUG: bool = bool(os.getenv("APP_DEBUG"))
+
     Base.metadata.create_all(engine)
 
-    engine.echo = True
+    engine.echo = APP_DEBUG
+
     Base.set_engine(engine)
 
     # yield, to let all tests within the scope run
