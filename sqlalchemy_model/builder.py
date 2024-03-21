@@ -1,9 +1,12 @@
 import math
 
 from typing import Optional, Generic, Iterable, TypeVar, Callable
+
 from sqlalchemy import inspect, select, delete, func
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.strategy_options import Load
 from sqlalchemy.sql import Select
+from sqlalchemy.sql.elements import BinaryExpression, UnaryExpression
 
 _M = TypeVar("_M")
 
@@ -32,7 +35,7 @@ class QueryBuilder(Generic[_M]):
 
         return self
 
-    def where(self, *express):
+    def where(self, *express: BinaryExpression):
         self._where_clauses.extend(express)
 
         return self
@@ -66,12 +69,12 @@ class QueryBuilder(Generic[_M]):
             "data": self.get(),
         }
 
-    def order_by(self, *express):
+    def order_by(self, *express: UnaryExpression):
         self._order_clauses.extend(express)
 
         return self
 
-    def options(self, *options):
+    def options(self, *options: Load):
         self._options.extend(options)
 
         return self
