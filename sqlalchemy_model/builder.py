@@ -19,6 +19,7 @@ class QueryBuilder(Generic[_M]):
         self._model: _M = model
         self._select_entities = []
         self._where_clauses = []
+        self._group_clauses = []
         self._order_clauses = []
         self._offset: Optional[int] = None
         self._limit: Optional[int] = None
@@ -50,24 +51,10 @@ class QueryBuilder(Generic[_M]):
 
         return self
 
-    def paginate(self, page: int = 1, per_page: int = 50):
-        self._offset = (page - 1) * per_page
-        self._limit = per_page
+    def group_by(self, *entities):
+        self._group_clauses.extend(entities)
 
-        total_rows = self.first(
-            self._select_stmt(
-                select(func.count()).select_from(self._get_model_class()),
-                pageable=True,
-            )
-        )
-
-        return {
-            "total": total_rows,
-            "per_page": per_page,
-            "current_page": page,
-            "last_page": math.ceil(total_rows / per_page),
-            "data": self.get(),
-        }
+        return self
 
     def order_by(self, *express: UnaryExpression):
         self._order_clauses.extend(express)
@@ -88,6 +75,25 @@ class QueryBuilder(Generic[_M]):
         stmt = stmt if stmt is not None else self._select_stmt(**kwargs)
 
         return self._session.scalars(stmt).all()
+
+    def paginate(self, page: int = 1, per_page: int = 50):
+        self._offset = (page - 1) * per_page
+        self._limit = per_page
+
+        total_rows = self.first(
+            self._select_stmt(
+                select(func.count()).select_from(self._get_model_class()),
+                pageable=True,
+            )
+        )
+
+        return {
+            "total": total_rows,
+            "per_page": per_page,
+            "current_page": page,
+            "last_page": math.ceil(total_rows / per_page),
+            "data": self.get(),
+        }
 
     def _boot_scopes(self):
         for _, scope in self._scopes.items():
@@ -112,6 +118,9 @@ class QueryBuilder(Generic[_M]):
 
         if self._where_clauses:
             stmt = stmt.where(*self._where_clauses)
+
+        if not pageable and self._group_clauses:
+            stmt = stmt.group_by(*self._group_clauses)
 
         if not pageable and self._order_clauses:
             stmt = stmt.order_by(*self._order_clauses)

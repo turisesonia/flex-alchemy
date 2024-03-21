@@ -3,11 +3,16 @@ import pytest
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.strategy_options import Load
-from sqlalchemy.sql.elements import BinaryExpression, UnaryExpression
+from sqlalchemy.sql.elements import (
+    BinaryExpression,
+    UnaryExpression,
+    Label,
+    _textual_label_reference,
+)
+from sqlalchemy.sql.annotation import AnnotatedColumn
 
 from sqlalchemy_model.builder import QueryBuilder
 from sqlalchemy_model.scopes.softdelete import SoftDeleteScope
-
 from .models import Base, User
 
 
@@ -103,6 +108,27 @@ def test_build_select_stmt_with_limit_clause(faker, session):
 
     assert stmt._limit_clause is not None
     assert stmt._limit == limit
+
+
+def test_build_select_stmt_with_group_by_clause(session):
+    stmt = QueryBuilder(session, User()).group_by(User.state)._select_stmt()
+
+    for clause in stmt._group_by_clause:
+        assert isinstance(clause, AnnotatedColumn)
+
+    stmt = (
+        QueryBuilder(session, User())
+        .group_by(User.name.label("user_name"))
+        ._select_stmt()
+    )
+
+    for clause in stmt._group_by_clause:
+        assert isinstance(clause, Label)
+
+    stmt = QueryBuilder(session, User()).group_by("name")._select_stmt()
+
+    for clause in stmt._group_by_clause:
+        assert isinstance(clause, _textual_label_reference)
 
 
 def test_build_select_stmt_with_order_by_clause(session):
