@@ -76,7 +76,7 @@ class QueryBuilder(Generic[_M]):
 
         return self._session.scalars(stmt).all()
 
-    def paginate(self, page: int = 1, per_page: int = 50):
+    def paginate(self, page: int = 1, per_page: int = 50) -> dict:
         self._offset = (page - 1) * per_page
         self._limit = per_page
 
@@ -105,7 +105,7 @@ class QueryBuilder(Generic[_M]):
     def _select_stmt(
         self, stmt: Optional[Select] = None, pageable: bool = False, **kwargs
     ) -> Select:
-        if not stmt:
+        if stmt is None:
             stmt = (
                 select(*self._select_entities)
                 if self._select_entities

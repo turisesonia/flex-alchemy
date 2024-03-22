@@ -1,4 +1,5 @@
 import pytest
+import math
 
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session, joinedload
@@ -13,6 +14,7 @@ from sqlalchemy.sql.annotation import AnnotatedColumn
 
 from sqlalchemy_model.builder import QueryBuilder
 from sqlalchemy_model.scopes.softdelete import SoftDeleteScope
+
 from .models import Base, User
 
 
@@ -147,6 +149,42 @@ def test_build_select_stmt_with_options(session):
 
     for opt in stmt._with_options:
         assert isinstance(opt, Load)
+
+
+def test_query_with_paginate(faker, session):
+    total_rows = 50
+    page = 1
+    per_page = 15
+
+    for _ in range(total_rows):
+        User.create(
+            name=faker.name(),
+            email=faker.email(),
+            password=faker.password(),
+            state=faker.pybool(),
+        )
+
+    data = QueryBuilder(session, User()).paginate(page, per_page)
+
+    assert isinstance(data, dict)
+    assert data["total"] == total_rows
+    assert data["current_page"] == page
+    assert data["per_page"] == per_page
+    assert data["last_page"] == math.ceil(total_rows / per_page)
+
+    # Pydantic Model example
+    # class Paginate(BaseModel, Generic[DataT]):
+    #     total: int
+    #     per_page: int
+    #     current_page: int
+    #     last_page: int
+    #     data: list[DataT] = []
+
+    # def _default_model_wrapper(self):
+    # klass = self._get_model_class()
+    # columns = klass.__table__.columns
+    # fields = {col.name: (col.type.python_type, None) for col in columns}
+    # return create_model(klass.__name__, **fields)
 
 
 def test_with_scope_boot(mocker, session: Session):

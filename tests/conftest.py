@@ -29,7 +29,7 @@ def _test_session(engine):
 
     Base.metadata.create_all(engine)
 
-    engine.echo = APP_DEBUG
+    engine.echo = False
 
     Base.set_engine(engine)
 
