@@ -1,10 +1,10 @@
 from typing import Optional
 from sqlalchemy import Engine
-from sqlalchemy.orm import Session, sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker, scoped_session
 
 
 class SessionHandler:
-    _session: Optional[Session] = None
+    _session: Optional[scoped_session] = None
 
     @classmethod
     def set_engine(cls, engine: Engine):
@@ -17,8 +17,3 @@ class SessionHandler:
     def remove_scoped_session(cls):
         if cls._session:
             cls._session.remove()
-
-    @classmethod
-    def close_session(cls):
-        if cls._session:
-            cls._session.close()
