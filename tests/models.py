@@ -1,6 +1,14 @@
 from typing import List
 
-from sqlalchemy import BigInteger, Integer, String, Boolean, ForeignKey
+from sqlalchemy import (
+    BigInteger,
+    Integer,
+    SmallInteger,
+    String,
+    Boolean,
+    Numeric,
+    ForeignKey,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy_model import ActiveRecord, TimestampMixin, SoftDeleteMixin
 
@@ -34,13 +42,15 @@ class User(Base, TimestampMixin):
 
 class Order(Base, TimestampMixin, SoftDeleteMixin):
     __tablename__ = "orders"
+    __repr_attrs__ = ("id", "uuid", "cost")
 
     id: Mapped[int] = mapped_column(
         BigInteger().with_variant(Integer, "sqlite"), primary_key=True
     )
     user_id: Mapped[int] = mapped_column(BigInteger(), ForeignKey("users.id"))
-    email: Mapped[str] = mapped_column(String(), unique=True)
-    password: Mapped[str] = mapped_column(String())
-    name: Mapped[str] = mapped_column(String(50))
+    uuid: Mapped[str] = mapped_column(String(), unique=True)
+    price: Mapped[float] = mapped_column(Numeric(10, 4), default=0)
+    cost: Mapped[float] = mapped_column(Numeric(10, 4), default=0)
+    state: Mapped[int] = mapped_column(SmallInteger())
 
     user: Mapped[User] = relationship(back_populates="orders")

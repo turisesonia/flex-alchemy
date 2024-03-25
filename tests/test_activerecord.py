@@ -1,7 +1,7 @@
 import pytest
 
 from typing import Sequence
-from .models import User
+from .models import User, Order
 
 
 @pytest.fixture
@@ -71,37 +71,57 @@ def test_all(email, name):
         assert isinstance(user, User)
 
 
-def test_soft_delete_self(faker):
-    email = faker.email()
-
+def test_soft_delete(faker, email, name):
     user = User.create(
         email=email,
-        name=faker.name(),
-        password=faker.password(),
+        name=name,
+        password="password",
     )
 
-    assert isinstance(User.where(User.email == email).first(), User)
+    order = Order.create(
+        user=user,
+        uuid=faker.uuid4(),
+        price=faker.pyfloat(),
+        cost=faker.pyfloat(),
+        state=1,
+    )
 
-    user.delete()
-    assert User.where(User.email == email).first() is None
+    assert isinstance(order, Order)
+    assert isinstance(order.user, User)
 
-    trashed_user = User.select().where(User.email == email).first(with_trashed=True)
-    assert isinstance(trashed_user, User)
+    uid = order.uuid
+    order.delete()
+
+    deleted = Order.where(Order.uuid == uid).first()
+    assert deleted is None
+
+    trashed = Order.where(Order.uuid == uid).first(with_trashed=True)
+    assert isinstance(trashed, Order)
 
 
-def test_force_delete_soft_delete_self(faker):
-    email = faker.email()
-
+def test_force_delete_soft_delete(faker, email, name):
     user = User.create(
         email=email,
-        name=faker.name(),
-        password=faker.password(),
+        name=name,
+        password="password",
     )
 
-    assert isinstance(User.where(User.email == email).first(), User)
+    order = Order.create(
+        user=user,
+        uuid=faker.uuid4(),
+        price=faker.pyfloat(),
+        cost=faker.pyfloat(),
+        state=1,
+    )
 
-    user.delete(force=True)
-    assert User.where(User.email == email).first() is None
+    assert isinstance(order, Order)
+    assert isinstance(order.user, User)
 
-    trashed_user = User.select().where(User.email == email).first(with_trashed=True)
-    assert trashed_user is None
+    uid = order.uuid
+    order.delete(force=True)
+
+    deleted = Order.where(Order.uuid == uid).first()
+    assert deleted is None
+
+    trashed = Order.where(Order.uuid == uid).first(with_trashed=True)
+    assert trashed is None

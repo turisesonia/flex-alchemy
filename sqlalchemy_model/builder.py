@@ -20,6 +20,7 @@ class QueryBuilder(Generic[_M]):
         self._select_entities = []
         self._where_clauses = []
         self._group_clauses = []
+        self._having_clauses = []
         self._order_clauses = []
         self._offset: Optional[int] = None
         self._limit: Optional[int] = None
@@ -53,6 +54,11 @@ class QueryBuilder(Generic[_M]):
 
     def group_by(self, *entities):
         self._group_clauses.extend(entities)
+
+        return self
+
+    def having(self, *express: BinaryExpression):
+        self._having_clauses.extend(express)
 
         return self
 
@@ -121,6 +127,9 @@ class QueryBuilder(Generic[_M]):
 
         if not pageable and self._group_clauses:
             stmt = stmt.group_by(*self._group_clauses)
+
+        if not pageable and self._group_clauses and self._having_clauses:
+            stmt = stmt.group_by(*self._having_clauses)
 
         if not pageable and self._order_clauses:
             stmt = stmt.order_by(*self._order_clauses)

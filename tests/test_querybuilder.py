@@ -15,7 +15,7 @@ from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy_model.builder import QueryBuilder
 from sqlalchemy_model.scopes.softdelete import SoftDeleteScope
 
-from .models import Base, User
+from .models import Base, User, Order
 
 
 @pytest.fixture
@@ -133,6 +133,25 @@ def test_build_select_stmt_with_group_by_clause(session):
         assert isinstance(clause, _textual_label_reference)
 
 
+def test_build_select_stmt_with_having_clause(session):
+    stmt = (
+        QueryBuilder(session, Order())
+        .group_by(Order.state)
+        .having(Order.price > 0)
+        ._select_stmt()
+    )
+
+    verifies = [AnnotatedColumn, BinaryExpression]
+
+    for clause in stmt._group_by_clause:
+        klass = verifies.pop(0)
+        assert isinstance(clause, klass)
+
+    stmt = QueryBuilder(session, Order()).having(Order.price > 0)._select_stmt()
+
+    assert len(stmt._group_by_clause) == 0
+
+
 def test_build_select_stmt_with_order_by_clause(session):
     builder = QueryBuilder(session, User()).order_by(
         User.name.asc(), User.created_at.asc()
@@ -192,6 +211,7 @@ def test_with_scope_boot(mocker, session: Session):
 
     QueryBuilder(session, User, {mock_scope.__class__: mock_scope})
 
+    # call boot method from scope
     mock_scope.boot.assert_called_once()
 
 
