@@ -23,21 +23,35 @@ def engine() -> Engine:
     return create_engine("sqlite:///:memory:")
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture
+def session(engine) -> Session:
+    return sessionmaker(engine)()
+
+
+@pytest.fixture(autouse=True)
 def _test_session(engine):
     APP_DEBUG: bool = bool(os.getenv("APP_DEBUG"))
 
+    # engine.echo = True
+
     Base.metadata.create_all(engine)
-
-    engine.echo = False
-
     Base.set_engine(engine)
 
     # yield, to let all tests within the scope run
     yield
 
-    engine.echo = False
     Base.remove_scoped_session()
+    Base.metadata.drop_all(engine)
+
+
+@pytest.fixture
+def name(faker):
+    return faker.name()
+
+
+@pytest.fixture
+def email(faker):
+    return faker.email()
 
 
 # @pytest.fixture(scope="session", autouse=True)
