@@ -1,7 +1,17 @@
+[project]
+name = "fluent-alchemy"
+version = "0.0.1"
+description = "Use SQLAlchemy fluently"
+readme = "README.rst"
+requires-python = ">=3.7"
+license = { text = "MIT License" }
+authors = ["Sam Yao <turisesonia@gmail.com>"]
+keywords = ["sqlalchemy", "SQLAlchemy", "activerecord", "Active Record"]
+
 [tool.poetry]
-name = "sqlalchemy-model"
-version = "0.1.0"
-description = ""
+name = "fluent-alchemy"
+version = "0.0.1"
+description = "Use SQLAlchemy fluently"
 authors = ["Sam Yao <turisesonia@gmail.com>"]
 readme = "README.md"
 
