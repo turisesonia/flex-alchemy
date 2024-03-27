@@ -65,9 +65,6 @@ class ActiveRecord(ScopedSessionHandler):
 
         return QueryBuilder(self._session, self, scopes)
 
-    def _is_softdeleted(self) -> bool:
-        return hasattr(self, "deleted_at")
-
     def save(self, refresh: bool = True):
         try:
             self._session.add(self)

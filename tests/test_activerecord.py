@@ -1,5 +1,7 @@
+import math
+
 from typing import Sequence
-from sqlalchemy import select
+from sqlalchemy import select, insert
 from sqlalchemy.orm import Session
 from sqlalchemy.engine.row import Row
 
@@ -95,6 +97,39 @@ def test_all(faker, email: str, name: str):
         assert isinstance(user, User)
 
 
+def test_paginate(faker, session: Session):
+    total = faker.pyint(max_value=1000)
+    page = 1
+    per_page = 15
+
+    with session as db:
+        # seeding
+        db.execute(
+            insert(User),
+            [
+                {
+                    "name": faker.name(),
+                    "email": f"{i}_{faker.email()}",
+                    "password": faker.password(),
+                }
+                for i in range(total)
+            ],
+        )
+
+        db.commit()
+
+    pagination = User.paginate(page, per_page)
+
+    assert pagination["total"] == total
+    assert pagination["per_page"] == per_page
+    assert pagination["current_page"] == page
+    assert pagination["last_page"] == math.ceil(total / per_page)
+    assert len(pagination["data"]) == per_page
+
+    for user in pagination["data"]:
+        isinstance(user, User)
+
+
 def test_model_delete_self(faker, email: str, name: str, session: Session):
     user = User.create(email=email, name=name, password=faker.password())
     user_id = user.id
@@ -109,7 +144,7 @@ def test_model_delete_self(faker, email: str, name: str, session: Session):
         assert user_ is None
 
 
-def test_soft_delete(faker, email: str, name: str):
+def test_soft_delete_self(faker, email: str, name: str):
     user = User.create(email=email, name=name, password=faker.password())
 
     order = Order.create(
@@ -133,7 +168,7 @@ def test_soft_delete(faker, email: str, name: str):
     assert isinstance(trashed, Order)
 
 
-def test_force_delete_soft_delete(faker, email: str, name: str):
+def test_force_delete_soft_delete_self(faker, email: str, name: str):
     user = User.create(email=email, name=name, password=faker.password())
 
     order = Order.create(
