@@ -10,7 +10,7 @@ from sqlalchemy import (
     ForeignKey,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy_model import ActiveRecord, TimestampMixin, SoftDeleteMixin
+from fluent_alchemy import ActiveRecord, TimestampMixin, SoftDeleteMixin
 
 
 class Base(DeclarativeBase, ActiveRecord):

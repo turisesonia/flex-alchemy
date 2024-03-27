@@ -12,8 +12,8 @@ from sqlalchemy.sql.elements import (
 )
 from sqlalchemy.sql.annotation import AnnotatedColumn
 
-from sqlalchemy_model.builder import QueryBuilder
-from sqlalchemy_model.scopes.softdelete import SoftDeleteScope
+from fluent_alchemy.builder import QueryBuilder
+from fluent_alchemy.scopes.softdelete import SoftDeleteScope
 
 from .models import Base, User, Order
 
