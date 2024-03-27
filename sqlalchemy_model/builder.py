@@ -1,10 +1,11 @@
 import math
 
-from typing import Optional, Generic, Iterable, TypeVar, Callable
+from typing import Any, Optional, Generic, Iterable, TypeVar, Callable
 
 from sqlalchemy import inspect, select, delete, func
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.strategy_options import Load
+from sqlalchemy.engine.result import Result
 from sqlalchemy.sql import Select
 from sqlalchemy.sql.elements import BinaryExpression, UnaryExpression
 
@@ -72,15 +73,24 @@ class QueryBuilder(Generic[_M]):
 
         return self
 
+    def execute(self, stmt: Select) -> Result[Any]:
+        return self._session.execute(stmt)
+
     def first(self, stmt: Optional[Select] = None, **kwargs) -> Optional[_M]:
         stmt = stmt if stmt is not None else self._select_stmt(**kwargs)
 
-        return self._session.scalar(stmt)
+        if len(self._select_entities) > 1:
+            return self.execute(stmt).first()
+
+        return self.execute(stmt).scalars().first()
 
     def get(self, stmt: Optional[Select] = None, **kwargs) -> Iterable[_M]:
         stmt = stmt if stmt is not None else self._select_stmt(**kwargs)
 
-        return self._session.scalars(stmt).all()
+        if len(self._select_entities) > 1:
+            return self.execute(stmt).all()
+
+        return self.execute(stmt).scalars().all()
 
     def paginate(self, page: int = 1, per_page: int = 50) -> dict:
         self._offset = (page - 1) * per_page
