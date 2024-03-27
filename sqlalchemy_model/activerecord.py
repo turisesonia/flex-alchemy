@@ -1,10 +1,10 @@
 from typing import Sequence
 
-from .session import SessionHandler
+from .session import ScopedSessionHandler
 from .builder import QueryBuilder
 
 
-class ActiveRecord(SessionHandler):
+class ActiveRecord(ScopedSessionHandler):
     @classmethod
     def select(cls, *entities):
         return cls()._new_query().select(*entities)

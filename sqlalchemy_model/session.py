@@ -3,7 +3,7 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 
-class SessionHandler:
+class ScopedSessionHandler:
     _session: Optional[scoped_session] = None
 
     @classmethod
