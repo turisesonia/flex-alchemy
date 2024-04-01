@@ -1,7 +1,7 @@
 from typing import Sequence
 
 from .session import ScopedSessionHandler
-from .builders import QueryBuilder
+from .builders.query import QueryBuilder
 
 
 class ActiveRecord(ScopedSessionHandler):
@@ -55,12 +55,12 @@ class ActiveRecord(ScopedSessionHandler):
 
         return instance
 
-    def _new_query(self) -> "QueryBuilder":
+    def _new_query(self) -> QueryBuilder:
         scopes = {}
 
         for base in self.__class__.__bases__:
-            if hasattr(base, "scope_registry"):
-                scope = base.scope_registry()
+            if hasattr(base, "scope_register"):
+                scope = base.scope_register()
                 scopes[scope.__class__] = scope
 
         return QueryBuilder(self._session, self, scopes)
