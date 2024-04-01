@@ -12,7 +12,7 @@ from sqlalchemy.sql.elements import (
 )
 from sqlalchemy.sql.annotation import AnnotatedColumn
 
-from fluent_alchemy.builders import QueryBuilder
+from fluent_alchemy.builders.select import SelectBuilder
 from fluent_alchemy.scopes.softdelete import SoftDeleteScope
 
 from .models import Base, User, Order
@@ -24,7 +24,7 @@ def session() -> Session:
 
 
 def test_builder_initial_value(session):
-    builder = QueryBuilder(session, User())
+    builder = SelectBuilder(session, User())
 
     assert isinstance(builder._model, User)
     assert builder._get_model_class() is User
@@ -34,7 +34,7 @@ def test_build_select_stmt_with_all_columns(session):
     state = inspect(User)
     all_columns = {col.name for col in state.columns}
 
-    builder = QueryBuilder(session, User())
+    builder = SelectBuilder(session, User())
 
     builder.select(User).where(User.email == "test@mail.com")
 
@@ -55,7 +55,7 @@ def test_build_select_stmt_with_all_columns(session):
 def test_build_select_stmt_with_specify_columns(session):
     from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-    builder = QueryBuilder(session, User())
+    builder = SelectBuilder(session, User())
 
     builder.select(User.name, User.email)
 
@@ -78,7 +78,7 @@ def test_build_select_stmt_with_where_clauses(faker, session):
     email = faker.email()
 
     builder = (
-        QueryBuilder(session, User())
+        SelectBuilder(session, User())
         .where(User.name == name)
         .where(User.email == email)
         .where(User.state.is_(True))
@@ -95,7 +95,7 @@ def test_build_select_stmt_with_where_clauses(faker, session):
 def test_build_select_stmt_with_offset_clause(faker, session):
     offset = faker.pyint()
 
-    builder = QueryBuilder(session, User()).offset(offset)
+    builder = SelectBuilder(session, User()).offset(offset)
     stmt = builder._select_stmt()
 
     assert stmt._offset_clause is not None
@@ -105,7 +105,7 @@ def test_build_select_stmt_with_offset_clause(faker, session):
 def test_build_select_stmt_with_limit_clause(faker, session):
     limit = faker.pyint()
 
-    builder = QueryBuilder(session, User()).limit(limit)
+    builder = SelectBuilder(session, User()).limit(limit)
     stmt = builder._select_stmt()
 
     assert stmt._limit_clause is not None
@@ -113,13 +113,13 @@ def test_build_select_stmt_with_limit_clause(faker, session):
 
 
 def test_build_select_stmt_with_group_by_clause(session):
-    stmt = QueryBuilder(session, User()).group_by(User.state)._select_stmt()
+    stmt = SelectBuilder(session, User()).group_by(User.state)._select_stmt()
 
     for clause in stmt._group_by_clause:
         assert isinstance(clause, AnnotatedColumn)
 
     stmt = (
-        QueryBuilder(session, User())
+        SelectBuilder(session, User())
         .group_by(User.name.label("user_name"))
         ._select_stmt()
     )
@@ -127,7 +127,7 @@ def test_build_select_stmt_with_group_by_clause(session):
     for clause in stmt._group_by_clause:
         assert isinstance(clause, Label)
 
-    stmt = QueryBuilder(session, User()).group_by("name")._select_stmt()
+    stmt = SelectBuilder(session, User()).group_by("name")._select_stmt()
 
     for clause in stmt._group_by_clause:
         assert isinstance(clause, _textual_label_reference)
@@ -135,7 +135,7 @@ def test_build_select_stmt_with_group_by_clause(session):
 
 def test_build_select_stmt_with_having_clause(session):
     stmt = (
-        QueryBuilder(session, Order())
+        SelectBuilder(session, Order())
         .group_by(Order.state)
         .having(Order.price > 0)
         ._select_stmt()
@@ -147,13 +147,13 @@ def test_build_select_stmt_with_having_clause(session):
         klass = verifies.pop(0)
         assert isinstance(clause, klass)
 
-    stmt = QueryBuilder(session, Order()).having(Order.price > 0)._select_stmt()
+    stmt = SelectBuilder(session, Order()).having(Order.price > 0)._select_stmt()
 
     assert len(stmt._group_by_clause) == 0
 
 
 def test_build_select_stmt_with_order_by_clause(session):
-    builder = QueryBuilder(session, User()).order_by(
+    builder = SelectBuilder(session, User()).order_by(
         User.name.asc(), User.created_at.asc()
     )
     stmt = builder._select_stmt()
@@ -163,7 +163,7 @@ def test_build_select_stmt_with_order_by_clause(session):
 
 
 def test_build_select_stmt_with_options(session):
-    builder = QueryBuilder(session, User()).options(joinedload(User.orders))
+    builder = SelectBuilder(session, User()).options(joinedload(User.orders))
     stmt = builder._select_stmt()
 
     for opt in stmt._with_options:
@@ -183,7 +183,7 @@ def test_query_with_paginate(faker, session):
             state=faker.pybool(),
         )
 
-    data = QueryBuilder(session, User()).paginate(page, per_page)
+    data = SelectBuilder(session, User()).paginate(page, per_page)
 
     assert isinstance(data, dict)
     assert data["total"] == total_rows
@@ -209,7 +209,7 @@ def test_query_with_paginate(faker, session):
 def test_with_scope_boot(mocker, session: Session):
     mock_scope = mocker.Mock()
 
-    QueryBuilder(session, User, {mock_scope.__class__: mock_scope})
+    SelectBuilder(session, User, {mock_scope.__class__: mock_scope})
 
     # call boot method from scope
     mock_scope.boot.assert_called_once()
@@ -218,6 +218,6 @@ def test_with_scope_boot(mocker, session: Session):
 def test_soft_delete_scope(mocker, session: Session):
     scopes = {SoftDeleteScope.__class__: SoftDeleteScope()}
 
-    builder = QueryBuilder(session, User(), scopes)
+    builder = SelectBuilder(session, User(), scopes)
 
     assert callable(builder._on_delete)

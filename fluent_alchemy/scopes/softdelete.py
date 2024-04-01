@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from . import Scope
-from ..builders import QueryBuilder
+from ..builders.query import QueryBuilder
 
 
 class SoftDeleteScope(Scope):
