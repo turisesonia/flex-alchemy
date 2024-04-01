@@ -1,7 +1,7 @@
 from typing import Sequence
 
 from .session import ScopedSessionHandler
-from .builder import QueryBuilder
+from .builders import QueryBuilder
 
 
 class ActiveRecord(ScopedSessionHandler):

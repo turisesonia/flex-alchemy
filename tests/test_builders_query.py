@@ -12,7 +12,7 @@ from sqlalchemy.sql.elements import (
 )
 from sqlalchemy.sql.annotation import AnnotatedColumn
 
-from fluent_alchemy.builder import QueryBuilder
+from fluent_alchemy.builders import QueryBuilder
 from fluent_alchemy.scopes.softdelete import SoftDeleteScope
 
 from .models import Base, User, Order
