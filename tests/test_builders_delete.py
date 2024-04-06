@@ -1,7 +1,7 @@
 import pytest
 import math
 
-from sqlalchemy import inspect
+from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.strategy_options import Load
 from sqlalchemy.sql.dml import Delete
@@ -87,3 +87,16 @@ def test_build_delete_stmt_with_returning_all(builder: DeleteBuilder):
 
     for col in stmt._returning:
         assert isinstance(col, AnnotatedTable)
+
+
+def test_call_delete(faker, builder: DeleteBuilder, session: Session):
+    # seed
+    user = User(name=faker.name(), email=faker.email(), password=faker.password())
+    session.add(user)
+    session.commit()
+
+    builder.where(User.id == user.id).delete()
+
+    #
+    validate = session.execute(select(User).where(User.id == user.id)).scalars().first()
+    assert validate is None

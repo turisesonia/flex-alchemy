@@ -1,7 +1,8 @@
 from typing import Optional
+from datetime import datetime
 
-from sqlalchemy import delete
-from sqlalchemy.sql.dml import Delete
+from sqlalchemy import delete, update
+from sqlalchemy.sql.dml import Delete, Update
 
 from .base import BaseBuilder
 
@@ -11,10 +12,6 @@ class DeleteBuilder(BaseBuilder):
         if stmt is None:
             stmt = delete(self._get_model_class())
 
-        # apply scopes query
-        # for _, scope in self._scopes.items():
-        #     scope.apply(**kwargs)
-
         if self._where_clauses:
             stmt = stmt.where(*self._where_clauses)
 
@@ -22,3 +19,22 @@ class DeleteBuilder(BaseBuilder):
             stmt = stmt.returning(*self._returnings)
 
         return stmt
+
+    def _soft_delete_stmt(self) -> Update:
+        stmt = update(self._get_model_class())
+
+        if self._where_clauses:
+            stmt = stmt.where(*self._where_clauses)
+
+        stmt.values(deleted_at=datetime.now())
+
+        return stmt
+
+    def delete(self, force: bool = False):
+        stmt = self._delete_stmt()
+
+        result = self.execute(stmt)
+
+        self._session.commit()
+
+        return result
