@@ -76,7 +76,7 @@ class BaseBuilder(Generic[_M]):
     def execute(self, stmt: Union[Select, Delete], *args, **kwargs) -> Result[Any]:
         return self._session.execute(stmt, *args, **kwargs)
 
-    def _get_model_class(self):
+    def get_model_class(self):
         return self._model.__class__
 
     def apply_scopes(self, scopes: dict = {}):

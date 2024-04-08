@@ -31,7 +31,7 @@ class SelectBuilder(BaseBuilder):
 
         total_rows = self.first(
             self._select_stmt(
-                select(func.count()).select_from(self._get_model_class()),
+                select(func.count()).select_from(self.get_model_class()),
                 pageable=True,
             )
         )
@@ -51,7 +51,7 @@ class SelectBuilder(BaseBuilder):
             stmt = (
                 select(*self._select_entities)
                 if self._select_entities
-                else select(self._get_model_class())
+                else select(self.get_model_class())
             )
 
         # apply scopes query

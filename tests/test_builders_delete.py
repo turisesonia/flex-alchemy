@@ -24,7 +24,7 @@ def builder(session: Session) -> DeleteBuilder:
 
 def test_delete_builder_initial(builder: DeleteBuilder):
     assert isinstance(builder._model, User)
-    assert builder._get_model_class() is User
+    assert builder.get_model_class() is User
 
 
 def test_build_delete_stmt(builder: DeleteBuilder):

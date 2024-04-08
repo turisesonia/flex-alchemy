@@ -16,10 +16,10 @@ class SoftDeleteScope(Scope):
 
     def apply(self, with_trashed: bool = False):
         if not with_trashed:
-            self._builder.where(self._builder._get_model_class().deleted_at.is_(None))
+            self._builder.where(self._builder.get_model_class().deleted_at.is_(None))
 
     def _delete_stmt(self):
-        stmt = update(self._builder._get_model_class())
+        stmt = update(self._builder.get_model_class())
 
         if self._builder._where_clauses:
             stmt = stmt.where(*self._builder._where_clauses)

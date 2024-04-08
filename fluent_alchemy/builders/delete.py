@@ -9,7 +9,7 @@ from .base import BaseBuilder
 class DeleteBuilder(BaseBuilder):
     def _delete_stmt(self, stmt: Optional[Delete] = None, **kwargs) -> Delete:
         if stmt is None:
-            stmt = delete(self._get_model_class())
+            stmt = delete(self.get_model_class())
 
         if self._where_clauses:
             stmt = stmt.where(*self._where_clauses)
