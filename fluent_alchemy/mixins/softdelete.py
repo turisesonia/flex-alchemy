@@ -10,5 +10,5 @@ class SoftDeleteMixin:
     deleted_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(), nullable=True)
 
     @classmethod
-    def scope_register(cls) -> SoftDeleteScope:
+    def scope_registry(cls) -> SoftDeleteScope:
         return SoftDeleteScope()

@@ -59,11 +59,11 @@ class ActiveRecord(ScopedSessionHandler):
         scopes = {}
 
         for base in self.__class__.__bases__:
-            if hasattr(base, "scope_register"):
-                scope = base.scope_register()
+            if hasattr(base, "scope_registry"):
+                scope = base.scope_registry()
                 scopes[scope.__class__] = scope
 
-        return QueryBuilder(self._session, self, scopes)
+        return QueryBuilder(self._session, self).apply_scopes(scopes)
 
     def save(self, refresh: bool = True):
         try:
@@ -79,7 +79,7 @@ class ActiveRecord(ScopedSessionHandler):
 
     def delete(self, force: bool = False):
         try:
-            self._new_query().delete(force)
+            self._new_query().where(self.__class__.id == self.id).delete(force)
 
         except Exception as e:
             self._session.rollback()

@@ -1,7 +1,7 @@
 import math
-from typing import Optional, Iterable, Callable
+from typing import Optional, Iterable
 
-from sqlalchemy import inspect, select, delete, func
+from sqlalchemy import select, func
 from sqlalchemy.sql import Select
 
 from . import _M
@@ -78,31 +78,5 @@ class SelectBuilder(BaseBuilder):
 
         if self._options:
             stmt = stmt.options(*self._options)
-
-        return stmt
-
-    # * Delete query builder
-    def delete(self, force: bool = False):
-        if self._on_delete and not force:
-            self._on_delete()
-        else:
-            self._do_delete()
-
-        self._session.commit()
-
-    def _set_on_delete(self, callback: Callable):
-        self._on_delete = callback
-
-    def _do_delete(self):
-        if inspect(self._model).persistent:
-            self._session.delete(self._model)
-        else:
-            self._session.execute(self._delete_stmt())
-
-    def _delete_stmt(self):
-        stmt = delete(self._get_model_class())
-
-        if self._where_clauses:
-            stmt = stmt.where(*self._where_clauses)
 
         return stmt

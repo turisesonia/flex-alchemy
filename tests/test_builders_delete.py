@@ -1,17 +1,9 @@
 import pytest
-import math
 
-from sqlalchemy import inspect, select
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.orm.strategy_options import Load
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Delete
-from sqlalchemy.sql.elements import (
-    BinaryExpression,
-    BooleanClauseList,
-    UnaryExpression,
-    Label,
-    _textual_label_reference,
-)
+from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
 from fluent_alchemy.builders.delete import DeleteBuilder
@@ -100,3 +92,16 @@ def test_call_delete(faker, builder: DeleteBuilder, session: Session):
     #
     validate = session.execute(select(User).where(User.id == user.id)).scalars().first()
     assert validate is None
+
+
+def test_call_delete_with_soft_delete_scope(mocker, builder, session: Session):
+    mock_delete_stmt = mocker.patch.object(SoftDeleteScope, "_delete_stmt")
+    mock_execute = mocker.patch.object(DeleteBuilder, "execute")
+    mock_commit = mocker.patch.object(session, "commit")
+
+    builder.apply_scopes({SoftDeleteScope: SoftDeleteScope()})
+    builder.delete()
+
+    mock_delete_stmt.assert_called_once()
+    mock_execute.assert_called_once()
+    mock_commit.assert_called_once()

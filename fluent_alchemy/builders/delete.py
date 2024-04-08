@@ -1,8 +1,7 @@
 from typing import Optional
-from datetime import datetime
 
-from sqlalchemy import delete, update
-from sqlalchemy.sql.dml import Delete, Update
+from sqlalchemy import delete
+from sqlalchemy.sql.dml import Delete
 
 from .base import BaseBuilder
 
@@ -20,21 +19,13 @@ class DeleteBuilder(BaseBuilder):
 
         return stmt
 
-    def _soft_delete_stmt(self) -> Update:
-        stmt = update(self._get_model_class())
-
-        if self._where_clauses:
-            stmt = stmt.where(*self._where_clauses)
-
-        stmt.values(deleted_at=datetime.now())
-
-        return stmt
-
     def delete(self, force: bool = False):
-        stmt = self._delete_stmt()
+        if not force and (macro_method := self._macros.get("_delete_stmt")):
+            stmt = macro_method()
+        else:
+            stmt = self._delete_stmt()
 
         result = self.execute(stmt)
-
         self._session.commit()
 
         return result
