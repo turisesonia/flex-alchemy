@@ -13,7 +13,7 @@ from . import _M
 class BaseBuilder(Generic[_M]):
     _model: _M
 
-    def __init__(self, session: Session, model: _M, scopes: dict = {}):
+    def __init__(self, session: Session, model: _M):
         self._session: Session = session
         self._model: _M = model
         self._select_entities = []
@@ -25,12 +25,8 @@ class BaseBuilder(Generic[_M]):
         self._limit: Optional[int] = None
         self._options = []
         self._returnings = []
-
+        self._scopes = {}
         self._macros = {}
-        self._scopes = scopes
-        self._on_delete: Optional[Callable] = None
-
-        self._boot_scopes()
 
     def select(self, *entities):
         self._select_entities.extend(entities)
@@ -80,9 +76,20 @@ class BaseBuilder(Generic[_M]):
     def execute(self, stmt: Union[Select, Delete], *args, **kwargs) -> Result[Any]:
         return self._session.execute(stmt, *args, **kwargs)
 
-    def _get_model_class(self):
+    def get_model_class(self):
         return self._model.__class__
 
-    def _boot_scopes(self):
+    def apply_scopes(self, scopes: dict = {}):
+        self._scopes = scopes
+        self._on_delete: Optional[Callable] = None
+
         for _, scope in self._scopes.items():
             scope.boot(self)
+
+        return self
+
+    def macro(self, name: str, callable_: Callable):
+        if callable(callable_):
+            self._macros[name] = callable_
+
+        return self

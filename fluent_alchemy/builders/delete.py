@@ -9,11 +9,7 @@ from .base import BaseBuilder
 class DeleteBuilder(BaseBuilder):
     def _delete_stmt(self, stmt: Optional[Delete] = None, **kwargs) -> Delete:
         if stmt is None:
-            stmt = delete(self._get_model_class())
-
-        # apply scopes query
-        # for _, scope in self._scopes.items():
-        #     scope.apply(**kwargs)
+            stmt = delete(self.get_model_class())
 
         if self._where_clauses:
             stmt = stmt.where(*self._where_clauses)
@@ -22,3 +18,14 @@ class DeleteBuilder(BaseBuilder):
             stmt = stmt.returning(*self._returnings)
 
         return stmt
+
+    def delete(self, force: bool = False):
+        if not force and (macro_method := self._macros.get("_delete_stmt")):
+            stmt = macro_method()
+        else:
+            stmt = self._delete_stmt()
+
+        result = self.execute(stmt)
+        self._session.commit()
+
+        return result

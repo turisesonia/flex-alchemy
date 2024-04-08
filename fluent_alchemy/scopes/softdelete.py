@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy import update
 from . import Scope
 from ..builders.query import QueryBuilder
 
@@ -10,16 +11,19 @@ class SoftDeleteScope(Scope):
 
     def boot(self, builder: QueryBuilder):
         self._builder = builder
-        self._builder._set_on_delete(self._on_delete)
+
+        self._builder.macro("_delete_stmt", self._delete_stmt)
 
     def apply(self, with_trashed: bool = False):
         if not with_trashed:
-            self._builder.where(self._builder._get_model_class().deleted_at.is_(None))
+            self._builder.where(self._builder.get_model_class().deleted_at.is_(None))
 
-    def _on_delete(self):
-        model = self._builder._model
+    def _delete_stmt(self):
+        stmt = update(self._builder.get_model_class())
 
-        # update the field "deleted_at" set datetime to now in model
-        model.deleted_at = datetime.now()
+        if self._builder._where_clauses:
+            stmt = stmt.where(*self._builder._where_clauses)
 
-        self._builder._session.add(model)
+        stmt = stmt.values(deleted_at=datetime.now())
+
+        return stmt

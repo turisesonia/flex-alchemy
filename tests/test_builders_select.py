@@ -27,7 +27,7 @@ def test_builder_initial_value(session):
     builder = SelectBuilder(session, User())
 
     assert isinstance(builder._model, User)
-    assert builder._get_model_class() is User
+    assert builder.get_model_class() is User
 
 
 def test_build_select_stmt_with_all_columns(session):
@@ -200,24 +200,7 @@ def test_query_with_paginate(faker, session):
     #     data: list[DataT] = []
 
     # def _default_model_wrapper(self):
-    # klass = self._get_model_class()
+    # klass = self.get_model_class()
     # columns = klass.__table__.columns
     # fields = {col.name: (col.type.python_type, None) for col in columns}
     # return create_model(klass.__name__, **fields)
-
-
-def test_with_scope_boot(mocker, session: Session):
-    mock_scope = mocker.Mock()
-
-    SelectBuilder(session, User, {mock_scope.__class__: mock_scope})
-
-    # call boot method from scope
-    mock_scope.boot.assert_called_once()
-
-
-def test_soft_delete_scope(mocker, session: Session):
-    scopes = {SoftDeleteScope.__class__: SoftDeleteScope()}
-
-    builder = SelectBuilder(session, User(), scopes)
-
-    assert callable(builder._on_delete)

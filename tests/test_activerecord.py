@@ -1,7 +1,7 @@
 import math
 
 from typing import Sequence
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.engine.row import Row
 
@@ -190,3 +190,16 @@ def test_force_delete_soft_delete_self(faker, email: str, name: str):
 
     trashed = Order.where(Order.uuid == uid).first(with_trashed=True)
     assert trashed is None
+
+
+def test_query_and_delete(faker, name: str, email: str):
+    # seed
+    user = User.create(name=name, email=email, password=faker.password())
+
+    User.where(User.email == email).delete()
+
+    assert not inspect(user).persistent
+
+    verify = User.where(User.email == email).first()
+
+    assert not verify
