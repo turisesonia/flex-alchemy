@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fluent-alchemy"
-version = "0.0.1"
+version = "0.0.2"
 description = "Use SQLAlchemy fluently"
 authors = ["Sam Yao <turisesonia@gmail.com>"]
 readme = "README.md"
