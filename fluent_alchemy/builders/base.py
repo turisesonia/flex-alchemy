@@ -24,6 +24,7 @@ class BaseBuilder(Generic[_M]):
         self._offset: Optional[int] = None
         self._limit: Optional[int] = None
         self._options = []
+        self._execution_options: Optional[dict] = None
         self._returnings = []
         self._scopes = {}
         self._macros = {}
@@ -70,6 +71,14 @@ class BaseBuilder(Generic[_M]):
 
     def options(self, *options: Load):
         self._options.extend(options)
+
+        return self
+
+    def execution_options(self, **options):
+        if self._execution_options is None:
+            self._execution_options = {}
+
+        self._execution_options.update(options)
 
         return self
 
