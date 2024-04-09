@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Optional
 
 from .session import ScopedSessionHandler
 from .builders.query import QueryBuilder
@@ -54,6 +54,23 @@ class ActiveRecord(ScopedSessionHandler):
         instance.save()
 
         return instance
+
+    @classmethod
+    def insert(
+        cls,
+        values: list[dict],
+        returning: Optional[list] = None,
+        execution_options: Optional[dict] = None,
+    ):
+        builder = cls()._new_query()
+
+        if returning:
+            builder.returning(*returning)
+
+        if execution_options:
+            builder.execution_options(**execution_options)
+
+        return builder.insert(values)
 
     def _new_query(self) -> QueryBuilder:
         scopes = {}

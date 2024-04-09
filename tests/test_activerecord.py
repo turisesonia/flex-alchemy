@@ -203,3 +203,45 @@ def test_query_and_delete(faker, name: str, email: str):
     verify = User.where(User.email == email).first()
 
     assert not verify
+
+
+def test_insert(faker):
+    total = 10
+
+    values = [
+        {
+            "name": faker.name(),
+            "email": faker.email(),
+            "password": faker.password(),
+        }
+        for _ in range(total)
+    ]
+
+    User.insert(values)
+
+    users = User.all()
+
+    assert len(users) == total
+    for user in users:
+        assert isinstance(user, User)
+
+
+def test_insert_with_returning(faker):
+    total = 10
+
+    values = [
+        {
+            "name": faker.name(),
+            "email": faker.email(),
+            "password": faker.password(),
+        }
+        for _ in range(total)
+    ]
+
+    result = User.insert(values, returning=[User])
+
+    users = result.scalars().all()
+
+    assert len(users) == total
+    for user in users:
+        assert isinstance(user, User)
