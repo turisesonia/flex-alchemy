@@ -1,30 +1,45 @@
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy import insert
-from sqlalchemy.sql.dml import Insert
 from sqlalchemy.engine.result import Result
 
 from .base import BaseBuilder
 
 
 class InsertBuilder(BaseBuilder):
-    def _insert_stmt(self, stmt: Optional[Insert] = None, **kwargs) -> Insert:
-        if stmt is None:
-            stmt = insert(self.get_model_class())
+    def _initial(self):
+        if self._stmt is None:
+            self._stmt = insert(self.get_model_class())
 
-        if self._returnings:
-            stmt = stmt.returning(*self._returnings)
+    def returning(self, *entities):
+        self._initial()
 
-        if self._execution_options:
-            stmt = stmt.execution_options(**self._execution_options)
+        self._stmt = self._stmt.returning(*entities)
 
-        return stmt
+        return self
 
-    def insert(self, values: list[dict]) -> Result[Any]:
-        stmt = self._insert_stmt()
+    def execution_options(self, **options):
+        self._initial()
 
-        result = self.execute(stmt, values)
+        self._stmt = self._stmt.execution_options(**options)
 
-        self._session.commit()
+        return self
+
+    def values(self, *args, **kwargs):
+        self._initial()
+
+        self._stmt = self._stmt.values(*args, **kwargs)
+
+        return self
+
+    def execute(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
+        if self._stmt is None:
+            # todo error message
+            raise ValueError("")
+
+        result = self._execute(self._stmt, *args, **kwargs)
+
+        if autocommit:
+            self._commit()
 
         return result
