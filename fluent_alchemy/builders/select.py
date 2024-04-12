@@ -1,40 +1,116 @@
 import math
+
 from typing import Optional, Iterable
 
 from sqlalchemy import select, func
 from sqlalchemy.sql import Select
+from sqlalchemy.sql.elements import BinaryExpression, UnaryExpression
+from sqlalchemy.orm.strategy_options import Load
 
 from . import _M
 from .base import BaseBuilder
 
 
 class SelectBuilder(BaseBuilder):
-    def first(self, stmt: Optional[Select] = None, **kwargs) -> Optional[_M]:
-        stmt = stmt if stmt is not None else self._select_stmt(**kwargs)
+    def _initial(self):
+        if self._stmt is None:
+            self._stmt = select(self.get_model_class())
 
-        if len(self._select_entities) > 1:
-            return self.execute(stmt).first()
+    def select(self, *entities):
+        if self._stmt is not None:
+            # TODO select statement is already initial
+            raise Exception("")
 
-        return self.execute(stmt).scalars().first()
+        if not entities:
+            self._stmt = select(self.get_model_class())
+        else:
+            self._stmt = select(*entities)
 
-    def get(self, stmt: Optional[Select] = None, **kwargs) -> Iterable[_M]:
-        stmt = stmt if stmt is not None else self._select_stmt(**kwargs)
+        return self
 
-        if len(self._select_entities) > 1:
-            return self.execute(stmt).all()
+    def where(self, *express: BinaryExpression):
+        self._initial()
 
-        return self.execute(stmt).scalars().all()
+        self._stmt = self._stmt.where(*express)
 
-    def paginate(self, page: int = 1, per_page: int = 50) -> dict:
+        return self
+
+    def offset(self, offset: int):
+        self._initial()
+
+        self._stmt = self._stmt.offset(offset)
+
+        return self
+
+    def limit(self, limit: int):
+        self._initial()
+
+        self._stmt = self._stmt.limit(limit)
+
+        return self
+
+    def group_by(self, *entities):
+        self._initial()
+
+        self._stmt = self._stmt.group_by(*entities)
+
+        return self
+
+    def having(self, *express: BinaryExpression):
+        self._initial()
+
+        self._stmt = self._stmt.having(*express)
+
+        return self
+
+    def order_by(self, *express: UnaryExpression):
+        self._initial()
+
+        self._stmt = self._stmt.order_by(*express)
+
+        return self
+
+    def options(self, *options: Load):
+        self._initial()
+
+        self._stmt = self._stmt.options(*options)
+
+        return self
+
+    def first(
+        self, stmt: Optional[Select] = None, partial_fields: bool = False
+    ) -> Optional[_M]:
+        stmt = stmt if stmt is not None else self._stmt
+
+        result = self._execute(stmt)
+
+        if partial_fields:
+            return result.first()
+
+        return result.scalars().first()
+
+    def get(
+        self, stmt: Optional[Select] = None, partial_fields: bool = False
+    ) -> Iterable[_M]:
+        stmt = stmt if stmt is not None else self._stmt
+
+        result = self._execute(stmt)
+
+        # todo handle joinload issue
+        if partial_fields:
+            return result.all()
+
+        return result.scalars().all()
+
+    def paginate(self, page: int = 1, per_page: int = 30) -> dict:
         self._offset = (page - 1) * per_page
         self._limit = per_page
 
-        total_rows = self.first(
-            self._select_stmt(
-                select(func.count()).select_from(self.get_model_class()),
-                pageable=True,
-            )
-        )
+        total_stmt = select(func.count()).select_from(self.get_model_class())
+        if self._stmt.whereclause is not None:
+            total_stmt = total_stmt.where(self._stmt.whereclause)
+
+        total_rows = self.first(total_stmt)
 
         return {
             "total": total_rows,
@@ -43,40 +119,3 @@ class SelectBuilder(BaseBuilder):
             "last_page": math.ceil(total_rows / per_page),
             "data": self.get(),
         }
-
-    def _select_stmt(
-        self, stmt: Optional[Select] = None, pageable: bool = False, **kwargs
-    ) -> Select:
-        if stmt is None:
-            stmt = (
-                select(*self._select_entities)
-                if self._select_entities
-                else select(self.get_model_class())
-            )
-
-        # apply scopes query
-        for _, scope in self._scopes.items():
-            scope.apply(**kwargs)
-
-        if self._where_clauses:
-            stmt = stmt.where(*self._where_clauses)
-
-        if not pageable and self._group_clauses:
-            stmt = stmt.group_by(*self._group_clauses)
-
-        if not pageable and self._group_clauses and self._having_clauses:
-            stmt = stmt.group_by(*self._having_clauses)
-
-        if not pageable and self._order_clauses:
-            stmt = stmt.order_by(*self._order_clauses)
-
-        if not pageable and self._offset is not None:
-            stmt = stmt.offset(self._offset)
-
-        if not pageable and self._limit is not None:
-            stmt = stmt.limit(self._limit)
-
-        if self._options:
-            stmt = stmt.options(*self._options)
-
-        return stmt
