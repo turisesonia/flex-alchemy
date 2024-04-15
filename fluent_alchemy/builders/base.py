@@ -116,9 +116,6 @@ class BaseBuilder(Generic[_M]):
         self._scopes = {}
         self._macros = {}
 
-    def _execute(self, stmt: Executable, *args, **kwargs) -> Result[Any]:
-        return self._session.execute(stmt, *args, **kwargs)
-
     def _commit(self):
         self._session.commit()
 

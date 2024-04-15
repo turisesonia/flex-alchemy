@@ -1,5 +1,5 @@
+import math
 import pytest
-
 
 from sqlalchemy import inspect, insert
 from sqlalchemy.engine.row import Row
@@ -13,6 +13,7 @@ from sqlalchemy.sql.elements import (
 )
 from sqlalchemy.sql.selectable import _OffsetLimitParam
 from sqlalchemy.sql.annotation import AnnotatedColumn
+from sqlalchemy.exc import InvalidRequestError
 
 from fluent_alchemy.builders.select import SelectBuilder
 
@@ -147,6 +148,40 @@ def test_select_options_clause(builder: SelectBuilder):
         assert isinstance(opt, Load)
 
 
+def test_select_joined_load_unique(faker, session: scoped_session):
+    session.execute(
+        insert(User).values(
+            [
+                {
+                    "name": faker.name(),
+                    "email": faker.email(),
+                    "password": faker.password(),
+                }
+                for _ in range(5)
+            ]
+        )
+    )
+
+    with pytest.raises(InvalidRequestError):
+        SelectBuilder(session, User()).where(User.state.is_(True)).options(
+            joinedload(User.orders)
+        ).get()
+
+    # * unique() in after execute() when query with joinedload
+    users = (
+        SelectBuilder(session, User())
+        .where(User.state.is_(True))
+        .options(joinedload(User.orders))
+        .execute()
+        .unique()
+        .scalars()
+        .all()
+    )
+
+    assert len(users) == 5
+    assert all(isinstance(user, User) for user in users)
+
+
 def test_select_first(faker, session: scoped_session):
     name = faker.name()
     email = faker.email()
@@ -209,6 +244,41 @@ def test_select_get(faker, session: scoped_session):
 
 
 def test_select_paginate(faker, session: scoped_session):
+    total = 50
+    page = 2
+    per_page = 15
+
+    session.execute(
+        insert(User).values(
+            [
+                {
+                    "name": faker.name(),
+                    "email": faker.email(),
+                    "password": faker.password(),
+                    "state": True if i % 2 else False,
+                }
+                for i in range(total)
+            ]
+        )
+    )
+    session.commit()
+
+    paginate = SelectBuilder(session, User()).select().paginate(page, per_page)
+
+    assert paginate["total"] == total
+    assert paginate["per_page"] == per_page
+    assert paginate["current_page"] == page
+    assert paginate["last_page"] == math.ceil(total / per_page)
+    assert len(paginate["data"]) == per_page
+
+    for user in paginate["data"]:
+        assert isinstance(user, User)
+
+
+def test_select_paginate_with_where_clauses(faker, session: scoped_session):
+    page = 2
+    per_page = 15
+
     session.execute(
         insert(User).values(
             [
@@ -224,16 +294,20 @@ def test_select_paginate(faker, session: scoped_session):
     )
     session.commit()
 
-    users = SelectBuilder(session, User()).select().where(User.state.is_(True)).get()
+    users = SelectBuilder(session, User()).where(User.state.is_(True)).get()
+    total = len(users)
 
-    users = (
+    paginate = (
         SelectBuilder(session, User())
-        .select()
-        # .where(User.state.is_(True))
-        .options(joinedload(User.orders))
-        .get()
-        # SelectBuilder(session, User()).select().paginate()
+        .where(User.state.is_(True))
+        .paginate(page, per_page)
     )
 
-    # print(users)
-    # print(users["total"], len(users["data"]))
+    assert paginate["total"] == len(users)
+    assert paginate["per_page"] == per_page
+    assert paginate["current_page"] == page
+    assert paginate["last_page"] == math.ceil(len(users) / per_page)
+    assert len(paginate["data"]) == total - ((page - 1) * per_page)
+
+    for user in paginate["data"]:
+        assert isinstance(user, User)

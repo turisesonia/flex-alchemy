@@ -37,7 +37,7 @@ class InsertBuilder(BaseBuilder):
             # todo error message
             raise ValueError("")
 
-        result = self._execute(self._stmt, *args, **kwargs)
+        result = self._session.execute(self._stmt, *args, **kwargs)
 
         if autocommit:
             self._commit()

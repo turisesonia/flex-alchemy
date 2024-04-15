@@ -78,7 +78,7 @@ def test_insert_execution_options(builder: InsertBuilder):
 
 
 def test_insert_execute(mocker, faker, session: Session, builder: InsertBuilder):
-    mock_execute = mocker.patch.object(InsertBuilder, "_execute")
+    mock_execute = mocker.patch.object(session, "execute")
     mock_commit = mocker.patch.object(session, "commit")
 
     values = [

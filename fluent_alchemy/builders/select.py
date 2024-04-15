@@ -1,10 +1,11 @@
 import math
 
-from typing import Optional, Iterable
+from typing import Any, Optional, Iterable
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, Executable
 from sqlalchemy.sql import Select
 from sqlalchemy.sql.elements import BinaryExpression, UnaryExpression
+from sqlalchemy.engine.result import Result
 from sqlalchemy.orm.strategy_options import Load
 
 from . import _M
@@ -77,12 +78,19 @@ class SelectBuilder(BaseBuilder):
 
         return self
 
+    def execute(
+        self, stmt: Optional[Executable] = None, *args, **kwargs
+    ) -> Result[Any]:
+        stmt = stmt if stmt is not None else self._stmt
+
+        return self._session.execute(stmt, *args, **kwargs)
+
     def first(
         self, stmt: Optional[Select] = None, partial_fields: bool = False
     ) -> Optional[_M]:
         stmt = stmt if stmt is not None else self._stmt
 
-        result = self._execute(stmt)
+        result = self.execute(stmt)
 
         if partial_fields:
             return result.first()
@@ -94,17 +102,16 @@ class SelectBuilder(BaseBuilder):
     ) -> Iterable[_M]:
         stmt = stmt if stmt is not None else self._stmt
 
-        result = self._execute(stmt)
+        result = self.execute(stmt)
 
-        # todo handle joinload issue
         if partial_fields:
             return result.all()
 
         return result.scalars().all()
 
     def paginate(self, page: int = 1, per_page: int = 30) -> dict:
-        self._offset = (page - 1) * per_page
-        self._limit = per_page
+        self.offset((page - 1) * per_page)
+        self.limit(per_page)
 
         total_stmt = select(func.count()).select_from(self.get_model_class())
         if self._stmt.whereclause is not None:
