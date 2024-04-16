@@ -122,7 +122,7 @@ class BaseBuilder(Generic[_M]):
     def get_model_class(self):
         return self._model.__class__
 
-    def apply_scopes(self, scopes: dict = {}):
+    def boot_scopes(self, scopes: dict = {}):
         self._scopes = scopes
         self._on_delete: Optional[Callable] = None
 

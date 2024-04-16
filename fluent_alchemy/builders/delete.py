@@ -1,31 +1,39 @@
-from typing import Optional
+from typing import Optional, Any
 
 from sqlalchemy import delete
 from sqlalchemy.sql.dml import Delete
+from sqlalchemy.sql.elements import BinaryExpression
+from sqlalchemy.engine.result import Result
+
 
 from .base import BaseBuilder
 
 
 class DeleteBuilder(BaseBuilder):
-    def _delete_stmt(self, stmt: Optional[Delete] = None, **kwargs) -> Delete:
-        if stmt is None:
-            stmt = delete(self.get_model_class())
+    def _initial(self):
+        if self._stmt is None:
+            self._stmt = delete(self.get_model_class())
 
-        if self._where_clauses:
-            stmt = stmt.where(*self._where_clauses)
+    def where(self, *express: BinaryExpression):
+        self._initial()
 
-        if self._returnings:
-            stmt = stmt.returning(*self._returnings)
+        self._stmt = self._stmt.where(*express)
 
-        return stmt
+        return self
 
-    def delete(self, force: bool = False):
-        if not force and (macro_method := self._macros.get("_delete_stmt")):
-            stmt = macro_method()
-        else:
-            stmt = self._delete_stmt()
+    def returning(self, *entities):
+        self._initial()
 
-        result = self.execute(stmt)
-        self._session.commit()
+        self._stmt = self._stmt.returning(*entities)
+
+        return self
+
+    def execute(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
+        self._initial()
+
+        result = self._session.execute(self._stmt, *args, **kwargs)
+
+        if autocommit:
+            self._commit()
 
         return result
