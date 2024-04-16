@@ -7,7 +7,6 @@ from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
 from fluent_alchemy.builders.delete import DeleteBuilder
-from fluent_alchemy.scopes.softdelete import SoftDeleteScope
 
 from .models import Base, User
 

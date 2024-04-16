@@ -1,17 +1,16 @@
 from typing import Any
 
-from sqlalchemy import delete
-from sqlalchemy.sql.elements import BinaryExpression
+from sqlalchemy import update
 from sqlalchemy.engine.result import Result
-
+from sqlalchemy.sql.elements import BinaryExpression
 
 from .base import BaseBuilder
 
 
-class DeleteBuilder(BaseBuilder):
+class UpdateBuilder(BaseBuilder):
     def _initial(self):
         if self._stmt is None:
-            self._stmt = delete(self.get_model_class())
+            self._stmt = update(self.get_model_class())
 
     def where(self, *express: BinaryExpression):
         self._initial()
@@ -27,8 +26,17 @@ class DeleteBuilder(BaseBuilder):
 
         return self
 
-    def execute(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
+    def values(self, *args, **kwargs):
         self._initial()
+
+        self._stmt = self._stmt.values(*args, **kwargs)
+
+        return self
+
+    def execute(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
+        if self._stmt is None:
+            # todo error message
+            raise ValueError("")
 
         result = self._session.execute(self._stmt, *args, **kwargs)
 

@@ -1,51 +1,51 @@
 from typing import Sequence, Optional
 
 from .session import ScopedSessionHandler
-from .builders.query import QueryBuilder
+from .builders.query import SelectBuilder, InsertBuilder, UpdateBuilder, DeleteBuilder
 
 
 class ActiveRecord(ScopedSessionHandler):
     @classmethod
     def select(cls, *entities):
-        return cls()._new_query().select(*entities)
+        return cls()._new_select().select(*entities)
 
     @classmethod
     def first(cls, **kwargs):
-        return cls()._new_query().first(**kwargs)
+        return cls()._new_select().first(**kwargs)
 
     @classmethod
     def find(cls, id_: int, **kwargs):
-        return cls()._new_query().where(cls.id == id_).first(**kwargs)
+        return cls()._new_select().where(cls.id == id_).first(**kwargs)
 
     @classmethod
     def all(cls, **kwargs) -> Sequence:
-        return cls()._new_query().get(**kwargs)
+        return cls()._new_select().select().get(**kwargs)
 
     @classmethod
     def where(cls, *express):
-        return cls()._new_query().where(*express)
+        return cls()._new_select().where(*express)
 
     @classmethod
     def order_by(cls, *express):
-        return cls()._new_query().order_by(*express)
+        return cls()._new_select().order_by(*express)
 
     @classmethod
     def offset(cls, offset: int = 0):
         if not isinstance(offset, int):
             raise ValueError
 
-        return cls()._new_query().offset(offset)
+        return cls()._new_select().offset(offset)
 
     @classmethod
     def limit(cls, limit: int = 0):
         if not isinstance(limit, int):
             raise ValueError
 
-        return cls()._new_query().limit(limit)
+        return cls()._new_select().limit(limit)
 
     @classmethod
     def paginate(cls, page: int = 1, per_page: int = 50, **kwargs):
-        return cls()._new_query().paginate(page, per_page, **kwargs)
+        return cls()._new_select().paginate(page, per_page, **kwargs)
 
     @classmethod
     def create(cls, **attributes):
@@ -56,31 +56,28 @@ class ActiveRecord(ScopedSessionHandler):
         return instance
 
     @classmethod
-    def insert(
-        cls,
-        values: list[dict],
-        returning: Optional[list] = None,
-        execution_options: Optional[dict] = None,
-    ):
-        builder = cls()._new_query()
+    def insert(cls) -> InsertBuilder:
+        return cls()._new_insert()
 
-        if returning:
-            builder.returning(*returning)
+    @classmethod
+    def update(cls):
+        return cls()._new_update()
 
-        if execution_options:
-            builder.execution_options(**execution_options)
+    @classmethod
+    def destroy(cls):
+        return cls()._new_delete()
 
-        return builder.insert(values)
+    def _new_select(self) -> SelectBuilder:
+        return SelectBuilder(self._session, self)
 
-    def _new_query(self) -> QueryBuilder:
-        scopes = {}
+    def _new_insert(self) -> InsertBuilder:
+        return InsertBuilder(self._session, self)
 
-        for base in self.__class__.__bases__:
-            if hasattr(base, "scope_registry"):
-                scope = base.scope_registry()
-                scopes[scope.__class__] = scope
+    def _new_update(self) -> UpdateBuilder:
+        return UpdateBuilder(self._session, self)
 
-        return QueryBuilder(self._session, self).apply_scopes(scopes)
+    def _new_delete(self) -> DeleteBuilder:
+        return DeleteBuilder(self._session, self)
 
     def save(self, refresh: bool = True):
         try:
@@ -96,7 +93,7 @@ class ActiveRecord(ScopedSessionHandler):
 
     def delete(self, force: bool = False):
         try:
-            self._new_query().where(self.__class__.id == self.id).delete(force)
+            self._new_delete().where(self.__class__.id == self.id).execute()
 
         except Exception as e:
             self._session.rollback()
