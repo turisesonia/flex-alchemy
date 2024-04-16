@@ -3,7 +3,6 @@ import math
 from typing import Any, Optional, Iterable
 
 from sqlalchemy import select, func, Executable
-from sqlalchemy.sql import Select
 from sqlalchemy.sql.elements import BinaryExpression, UnaryExpression
 from sqlalchemy.engine.result import Result
 from sqlalchemy.orm.strategy_options import Load
@@ -85,26 +84,18 @@ class SelectBuilder(BaseBuilder):
 
         return self._session.execute(stmt, *args, **kwargs)
 
-    def first(
-        self, stmt: Optional[Select] = None, partial_fields: bool = False
-    ) -> Optional[_M]:
-        stmt = stmt if stmt is not None else self._stmt
+    def first(self, specific_fields: bool = False) -> Optional[_M]:
+        result = self.execute(self._stmt)
 
-        result = self.execute(stmt)
-
-        if partial_fields:
+        if specific_fields:
             return result.first()
 
         return result.scalars().first()
 
-    def get(
-        self, stmt: Optional[Select] = None, partial_fields: bool = False
-    ) -> Iterable[_M]:
-        stmt = stmt if stmt is not None else self._stmt
+    def get(self, specific_fields: bool = False) -> Iterable[_M]:
+        result = self.execute(self._stmt)
 
-        result = self.execute(stmt)
-
-        if partial_fields:
+        if specific_fields:
             return result.all()
 
         return result.scalars().all()
@@ -117,7 +108,7 @@ class SelectBuilder(BaseBuilder):
         if self._stmt.whereclause is not None:
             total_stmt = total_stmt.where(self._stmt.whereclause)
 
-        total_rows = self.first(total_stmt)
+        total_rows = self.execute(total_stmt).scalars().first()
 
         return {
             "total": total_rows,

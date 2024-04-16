@@ -197,7 +197,7 @@ def test_select_first(faker, session: scoped_session):
         SelectBuilder(session, User())
         .select(User.name, User.email)
         .where(User.email == email)
-        .first(partial_fields=True)
+        .first(specific_fields=True)
     )
 
     assert isinstance(user, Row)
@@ -232,7 +232,7 @@ def test_select_get(faker, session: scoped_session):
     users = (
         SelectBuilder(session, User())
         .select(User.name, User.email)
-        .get(partial_fields=True)
+        .get(specific_fields=True)
     )
 
     assert len(users) == 5
