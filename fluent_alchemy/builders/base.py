@@ -136,3 +136,13 @@ class BaseBuilder(Generic[_M]):
             self._macros[name] = callable_
 
         return self
+
+
+class WhereBase:
+    def __init__(self):
+        self._where_clauses = ()
+
+    def where(self, *express: BinaryExpression):
+        self._where_clauses += (*express,)
+
+        return self
