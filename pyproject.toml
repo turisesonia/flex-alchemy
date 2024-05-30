@@ -27,4 +27,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest_env]
-APP_DEBUG = true
+APP_DEBUG = false
