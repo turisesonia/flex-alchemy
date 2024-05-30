@@ -38,7 +38,7 @@ def test_select_initial(builder: SelectBuilder):
 def test_select_all_fields(builder: SelectBuilder):
     columns = {col.name for col in inspect(User).columns}
 
-    stmt = builder.select(User)._stmt
+    stmt = builder.select(User)._select_stmt
 
     assert stmt.is_select
     assert set(stmt.selected_columns.keys()) == columns
@@ -47,7 +47,7 @@ def test_select_all_fields(builder: SelectBuilder):
 def test_select_specific_fields(builder: SelectBuilder):
     columns = {"id", "name", "email"}
 
-    stmt = builder.select(User.id, User.name, User.email)._stmt
+    stmt = builder.select(User.id, User.name, User.email)._select_stmt
 
     assert stmt.is_select
     assert set(stmt.selected_columns.keys()) == columns
@@ -62,11 +62,11 @@ def test_select_where_clauses(faker, builder: SelectBuilder):
         {"field": "email", "value": email},
     ]
 
-    stmt = builder.where(User.name == name).where(User.email == email)._stmt
+    builder.where(User.name == name).where(User.email == email)
 
-    assert len(stmt.whereclause) == len(validate)
+    assert len(builder._where_clauses) == len(validate)
 
-    for idx, clause in enumerate(stmt.whereclause):
+    for idx, clause in enumerate(builder._where_clauses):
         assert isinstance(clause, BinaryExpression)
 
         field = clause.left
@@ -79,7 +79,7 @@ def test_select_where_clauses(faker, builder: SelectBuilder):
 def test_select_offset_clause(faker, builder: SelectBuilder):
     offset = faker.pyint()
 
-    stmt = builder.offset(offset)._stmt
+    stmt = builder.offset(offset)._select_stmt
 
     assert stmt._offset == offset
     assert isinstance(stmt._offset_clause, _OffsetLimitParam)
@@ -89,7 +89,7 @@ def test_select_offset_clause(faker, builder: SelectBuilder):
 def test_select_limit_clause(faker, builder: SelectBuilder):
     limit = faker.pyint()
 
-    stmt = builder.limit(limit)._stmt
+    stmt = builder.limit(limit)._select_stmt
 
     assert stmt._limit == limit
     assert isinstance(stmt._limit_clause, _OffsetLimitParam)
@@ -98,17 +98,21 @@ def test_select_limit_clause(faker, builder: SelectBuilder):
 
 
 def test_select_group_by_clause(session: scoped_session):
-    stmt = SelectBuilder(session, User()).group_by(User.name)._stmt
+    stmt = SelectBuilder(session, User()).group_by(User.name)._select_stmt
 
     for clause in stmt._group_by_clause:
         assert isinstance(clause, AnnotatedColumn)
 
-    stmt = SelectBuilder(session, User()).group_by(User.name.label("user_name"))._stmt
+    stmt = (
+        SelectBuilder(session, User())
+        .group_by(User.name.label("user_name"))
+        ._select_stmt
+    )
 
     for clause in stmt._group_by_clause:
         assert isinstance(clause, Label)
 
-    stmt = SelectBuilder(session, User()).group_by("name")._stmt
+    stmt = SelectBuilder(session, User()).group_by("name")._select_stmt
 
     for clause in stmt._group_by_clause:
         assert isinstance(clause, _textual_label_reference)
@@ -119,7 +123,7 @@ def test_select_having_clause(session: scoped_session):
         SelectBuilder(session, Order())
         .group_by(Order.state)
         .having(Order.price > 0)
-        ._stmt
+        ._select_stmt
     )
 
     verifies = [AnnotatedColumn, BinaryExpression]
@@ -128,13 +132,13 @@ def test_select_having_clause(session: scoped_session):
         klass = verifies.pop(0)
         assert isinstance(clause, klass)
 
-    stmt = SelectBuilder(session, Order()).having(Order.price > 0)._stmt
+    stmt = SelectBuilder(session, Order()).having(Order.price > 0)._select_stmt
 
     assert len(stmt._group_by_clause) == 0
 
 
 def test_select_order_by_clause(builder: SelectBuilder):
-    stmt = builder.order_by(User.name.asc(), User.created_at.asc())._stmt
+    stmt = builder.order_by(User.name.asc(), User.created_at.asc())._select_stmt
 
     assert len(stmt._order_by_clauses) == 2
     for clause in stmt._order_by_clauses:
@@ -142,7 +146,7 @@ def test_select_order_by_clause(builder: SelectBuilder):
 
 
 def test_select_options_clause(builder: SelectBuilder):
-    stmt = builder.options(joinedload(User.orders))._stmt
+    stmt = builder.options(joinedload(User.orders))._select_stmt
 
     for opt in stmt._with_options:
         assert isinstance(opt, Load)
