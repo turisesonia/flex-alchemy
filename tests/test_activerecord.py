@@ -170,19 +170,19 @@ def test_model_delete(faker, email: str, name: str, session: Session):
         assert user_ is None
 
 
-def test_destroy(faker, name: str, email: str):
+def test_where_delete(faker, name: str, email: str):
     user = User.create(
         name=name,
         email=email,
         password=faker.password(),
     )
 
-    result = User.destroy().where(User.email == email).execute()
+    result = User.where(User.email == email).delete()
 
     assert isinstance(result, CursorResult)
     assert not inspect(user).persistent
 
-    # query is not exists
+    # query the user is not exists
     user = User.where(User.email == email).first()
     assert user is None
 

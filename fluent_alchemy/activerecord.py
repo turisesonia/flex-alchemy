@@ -1,7 +1,11 @@
-from typing import Sequence, Optional
+from typing import Sequence
 
 from .session import ScopedSessionHandler
-from .builders.query import SelectBuilder, InsertBuilder, UpdateBuilder, DeleteBuilder
+from .builders.select import SelectBuilder
+from .builders.insert import InsertBuilder
+from .builders.update import UpdateBuilder
+from .builders.delete import DeleteBuilder
+from .builders.where import WhereBuilder
 
 
 class ActiveRecord(ScopedSessionHandler):
@@ -23,7 +27,7 @@ class ActiveRecord(ScopedSessionHandler):
 
     @classmethod
     def where(cls, *express):
-        return cls()._new_select().where(*express)
+        return cls()._new_where().where(*express)
 
     @classmethod
     def order_by(cls, *express):
@@ -63,10 +67,6 @@ class ActiveRecord(ScopedSessionHandler):
     def update(cls):
         return cls()._new_update()
 
-    @classmethod
-    def destroy(cls):
-        return cls()._new_delete()
-
     def _new_select(self) -> SelectBuilder:
         return SelectBuilder(self._session, self)
 
@@ -78,6 +78,9 @@ class ActiveRecord(ScopedSessionHandler):
 
     def _new_delete(self) -> DeleteBuilder:
         return DeleteBuilder(self._session, self)
+
+    def _new_where(self) -> WhereBuilder:
+        return WhereBuilder(self._session, self)
 
     def save(self, refresh: bool = True):
         try:
@@ -91,9 +94,11 @@ class ActiveRecord(ScopedSessionHandler):
             self._session.rollback()
             raise e
 
-    def delete(self, force: bool = False):
+    def delete(self, autocommit: bool = False, *args, **kwargs):
         try:
-            self._new_delete().where(self.__class__.id == self.id).execute()
+            self._new_delete().where(self.__class__.id == self.id).delete(
+                autocommit=autocommit, *args, **kwargs
+            )
 
         except Exception as e:
             self._session.rollback()
