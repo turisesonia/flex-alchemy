@@ -138,8 +138,10 @@ class BaseBuilder(Generic[_M]):
         return self
 
 
-class WhereBase:
-    def __init__(self):
+class WhereBase(BaseBuilder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         self._where_clauses = ()
 
     def where(self, *express: BinaryExpression):

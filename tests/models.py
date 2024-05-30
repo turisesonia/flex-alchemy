@@ -27,7 +27,7 @@ class Base(DeclarativeBase, ActiveRecord):
 
 class User(Base, TimestampMixin):
     __tablename__ = "users"
-    __repr_attrs__ = ("id", "email", "name")
+    __repr_attrs__ = ("id", "email", "name", "state")
 
     id: Mapped[int] = mapped_column(
         BigInteger().with_variant(Integer, "sqlite"), primary_key=True

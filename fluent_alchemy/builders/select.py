@@ -9,17 +9,17 @@ from sqlalchemy.orm.strategy_options import Load
 from sqlalchemy.sql import Select
 
 from . import _M
-from .base import BaseBuilder, WhereBase
+from .base import WhereBase
 
 
-class SelectBuilder(BaseBuilder, WhereBase):
+class SelectBuilder(WhereBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._select_stmt: Select = None
 
-    def _initial(self):
+    def _select_stmt_init(self):
         if self._select_stmt is None:
             self._select_stmt = select(self.get_model_class())
 
@@ -36,42 +36,42 @@ class SelectBuilder(BaseBuilder, WhereBase):
         return self
 
     def offset(self, offset: int):
-        self._initial()
+        self._select_stmt_init()
 
         self._select_stmt = self._select_stmt.offset(offset)
 
         return self
 
     def limit(self, limit: int):
-        self._initial()
+        self._select_stmt_init()
 
         self._select_stmt = self._select_stmt.limit(limit)
 
         return self
 
     def group_by(self, *entities):
-        self._initial()
+        self._select_stmt_init()
 
         self._select_stmt = self._select_stmt.group_by(*entities)
 
         return self
 
     def having(self, *express: BinaryExpression):
-        self._initial()
+        self._select_stmt_init()
 
         self._select_stmt = self._select_stmt.having(*express)
 
         return self
 
     def order_by(self, *express: UnaryExpression):
-        self._initial()
+        self._select_stmt_init()
 
         self._select_stmt = self._select_stmt.order_by(*express)
 
         return self
 
     def options(self, *options: Load):
-        self._initial()
+        self._select_stmt_init()
 
         self._select_stmt = self._select_stmt.options(*options)
 
@@ -85,10 +85,12 @@ class SelectBuilder(BaseBuilder, WhereBase):
         return self._session.execute(stmt, *args, **kwargs)
 
     def first(self, specific_fields: bool = False) -> Optional[_M]:
-        if self._where_clauses:
-            self._select_stmt.where(*self._where_clauses)
+        self._select_stmt_init()
 
-        result = self.execute(self._select_stmt)
+        if self._where_clauses:
+            self._select_stmt = self._select_stmt.where(*self._where_clauses)
+
+        result = self.execute()
 
         if specific_fields:
             return result.first()
@@ -96,10 +98,12 @@ class SelectBuilder(BaseBuilder, WhereBase):
         return result.scalars().first()
 
     def get(self, specific_fields: bool = False) -> Iterable[_M]:
-        if self._where_clauses:
-            self._select_stmt.where(*self._where_clauses)
+        self._select_stmt_init()
 
-        result = self.execute(self._select_stmt)
+        if self._where_clauses:
+            self._select_stmt = self._select_stmt.where(*self._where_clauses)
+
+        result = self.execute()
 
         if specific_fields:
             return result.all()
@@ -111,7 +115,7 @@ class SelectBuilder(BaseBuilder, WhereBase):
         self.limit(per_page)
 
         if self._where_clauses:
-            self._select_stmt.where(*self._where_clauses)
+            self._select_stmt = self._select_stmt.where(*self._where_clauses)
 
         total_stmt = select(func.count()).select_from(self.get_model_class())
         if self._select_stmt.whereclause is not None:
