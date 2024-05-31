@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import update
+from sqlalchemy import Update, update
 from sqlalchemy.engine.result import Result
 from sqlalchemy.sql.elements import BinaryExpression
 
@@ -8,37 +8,43 @@ from .base import BaseBuilder
 
 
 class UpdateBuilder(BaseBuilder):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._update_stmt: Update = None
+
     def _initial(self):
-        if self._stmt is None:
-            self._stmt = update(self.get_model_class())
+        if self._update_stmt is None:
+            self._update_stmt = update(self.get_model_class())
 
     def where(self, *express: BinaryExpression):
         self._initial()
 
-        self._stmt = self._stmt.where(*express)
+        self._update_stmt = self._update_stmt.where(*express)
 
         return self
 
     def returning(self, *entities):
         self._initial()
 
-        self._stmt = self._stmt.returning(*entities)
+        self._update_stmt = self._update_stmt.returning(*entities)
 
         return self
 
     def values(self, *args, **kwargs):
         self._initial()
 
-        self._stmt = self._stmt.values(*args, **kwargs)
+        self._update_stmt = self._update_stmt.values(*args, **kwargs)
 
         return self
 
     def execute(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
-        if self._stmt is None:
+        if self._update_stmt is None:
             # todo error message
             raise ValueError("")
 
-        result = self._session.execute(self._stmt, *args, **kwargs)
+        result = self._session.execute(self._update_stmt, *args, **kwargs)
 
         if autocommit:
             self._commit()

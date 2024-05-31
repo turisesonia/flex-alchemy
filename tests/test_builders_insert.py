@@ -32,7 +32,7 @@ def test_insert_values_stmt(faker, builder: InsertBuilder):
 
     builder.values(**values)
 
-    stmt = builder._stmt
+    stmt = builder._insert_stmt
 
     assert isinstance(stmt, Insert)
     assert stmt.is_dml
@@ -44,7 +44,7 @@ def test_insert_values_stmt(faker, builder: InsertBuilder):
 def test_insert_returning_all(builder: InsertBuilder):
     builder.returning(User)
 
-    stmt = builder._stmt
+    stmt = builder._insert_stmt
 
     assert len(stmt._returning) > 0
 
@@ -55,7 +55,7 @@ def test_insert_returning_all(builder: InsertBuilder):
 def test_insert_returning_specific_fields(builder: InsertBuilder):
     builder.returning(User.id, User.email)
 
-    stmt = builder._stmt
+    stmt = builder._insert_stmt
 
     assert len(stmt._returning) > 0
 
@@ -68,7 +68,7 @@ def test_insert_returning_specific_fields(builder: InsertBuilder):
 def test_insert_execution_options(builder: InsertBuilder):
     builder.execution_options(render_nulls=True)
 
-    stmt = builder._stmt
+    stmt = builder._insert_stmt
 
     execution_options = stmt.get_execution_options()
 
@@ -97,5 +97,5 @@ def test_insert_execute(mocker, faker, session: Session, builder: InsertBuilder)
     builder.values(values)
     builder.execute()
 
-    mock_execute.assert_called_once_with(builder._stmt)
+    mock_execute.assert_called_once_with(builder._insert_stmt)
     mock_commit.assert_called_once()

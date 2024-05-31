@@ -27,7 +27,7 @@ def test_update_builder_initial(builder: UpdateBuilder):
 
 def test_build_update_stmt(builder: UpdateBuilder):
     builder._initial()
-    stmt = builder._stmt
+    stmt = builder._update_stmt
 
     assert isinstance(stmt, Update)
     assert stmt.is_dml
@@ -35,7 +35,7 @@ def test_build_update_stmt(builder: UpdateBuilder):
 
 def test_build_update_stmt_with_single_where_clause(faker, builder: UpdateBuilder):
     builder.where(User.email == faker.email())
-    stmt = builder._stmt
+    stmt = builder._update_stmt
 
     assert isinstance(stmt.whereclause, BinaryExpression)
     assert stmt.whereclause.left.name == "email"
@@ -43,7 +43,7 @@ def test_build_update_stmt_with_single_where_clause(faker, builder: UpdateBuilde
 
 def test_build_update_stmt_with_multiple_where_clauses(faker, builder: UpdateBuilder):
     builder.where(User.email == faker.email()).where(User.state.is_(False))
-    stmt = builder._stmt
+    stmt = builder._update_stmt
 
     assert isinstance(stmt.whereclause, BooleanClauseList)
 
@@ -59,7 +59,7 @@ def test_build_update_stmt_with_multiple_where_clauses(faker, builder: UpdateBui
 def test_build_update_stmt_with_returning(builder: UpdateBuilder):
     builder.returning(User.id, User.email)
 
-    stmt = builder._stmt
+    stmt = builder._update_stmt
 
     assert len(stmt._returning) > 0
 
@@ -72,7 +72,7 @@ def test_build_update_stmt_with_returning(builder: UpdateBuilder):
 def test_build_update_stmt_with_returning_all(builder: UpdateBuilder):
     builder.returning(User)
 
-    stmt = builder._stmt
+    stmt = builder._update_stmt
 
     assert len(stmt._returning) > 0
 
@@ -88,7 +88,7 @@ def test_build_update_stmt_with_values(faker, builder: UpdateBuilder):
 
     builder.values(**values)
 
-    stmt = builder._stmt
+    stmt = builder._update_stmt
 
     for column, param in stmt._values.items():
         assert values[column.name] == param.value
@@ -107,5 +107,5 @@ def test_update_execute(mocker, faker, session: Session, builder: UpdateBuilder)
     builder.values(values)
     builder.execute()
 
-    mock_execute.assert_called_once_with(builder._stmt)
+    mock_execute.assert_called_once_with(builder._update_stmt)
     mock_commit.assert_called_once()
