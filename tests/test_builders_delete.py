@@ -27,7 +27,6 @@ def test_delete_builder_initial(builder: DeleteBuilder):
 
 
 def test_build_delete_stmt(builder: DeleteBuilder):
-    builder._delete_stmt_initial()
     stmt = builder._delete_stmt
 
     assert isinstance(stmt, Delete)

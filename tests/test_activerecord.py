@@ -135,10 +135,27 @@ def test_paginate(faker, session: Session):
         isinstance(user, User)
 
 
-def test_insert(faker):
+def test_insert_single(faker):
+    values = {
+        "name": faker.name(),
+        "email": faker.email(),
+        "password": faker.password(),
+    }
+
+    User.insert(values)
+
+    user = User.first()
+    assert isinstance(user, User)
+
+    assert user.name == values["name"]
+    assert user.email == values["email"]
+    assert user.password == values["password"]
+
+
+def test_insert_multiple(faker):
     total = 10
 
-    User.insert().values(
+    User.insert(
         [
             {
                 "name": faker.name(),
@@ -147,7 +164,7 @@ def test_insert(faker):
             }
             for _ in range(total)
         ]
-    ).execute()
+    )
 
     users = User.all()
 

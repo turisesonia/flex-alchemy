@@ -95,7 +95,7 @@ def test_insert_execute(mocker, faker, session: Session, builder: InsertBuilder)
     ]
 
     builder.values(values)
-    builder.execute()
+    builder.insert()
 
     mock_execute.assert_called_once_with(builder._insert_stmt)
     mock_commit.assert_called_once()

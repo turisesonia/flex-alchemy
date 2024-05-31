@@ -12,30 +12,20 @@ class UpdateBuilder(BaseBuilder):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._update_stmt: Update = None
+        self._update_stmt: Update = update(self.get_model_class())
 
-    def _initial(self):
-        if self._update_stmt is None:
-            self._update_stmt = update(self.get_model_class())
+    def values(self, *args, **kwargs):
+        self._update_stmt = self._update_stmt.values(*args, **kwargs)
+
+        return self
 
     def where(self, *express: BinaryExpression):
-        self._initial()
-
         self._update_stmt = self._update_stmt.where(*express)
 
         return self
 
     def returning(self, *entities):
-        self._initial()
-
         self._update_stmt = self._update_stmt.returning(*entities)
-
-        return self
-
-    def values(self, *args, **kwargs):
-        self._initial()
-
-        self._update_stmt = self._update_stmt.values(*args, **kwargs)
 
         return self
 

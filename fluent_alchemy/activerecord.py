@@ -60,8 +60,29 @@ class ActiveRecord(ScopedSessionHandler):
         return instance
 
     @classmethod
-    def insert(cls) -> InsertBuilder:
-        return cls()._new_insert()
+    def insert(
+        cls,
+        values,
+        returning: Sequence = None,
+        options: dict = None,
+        autocommit: bool = True,
+        *args,
+        **kwargs,
+    ) -> InsertBuilder:
+        builder = cls()._new_insert()
+
+        builder.values(values)
+
+        if returning:
+            if not isinstance(returning, Sequence):
+                returning = (returning,)
+
+            builder.returning(*returning)
+
+        if options:
+            builder.execution_options(**options)
+
+        return builder.insert(autocommit=autocommit, *args, **kwargs)
 
     @classmethod
     def update(cls):
@@ -94,7 +115,7 @@ class ActiveRecord(ScopedSessionHandler):
             self._session.rollback()
             raise e
 
-    def delete(self, autocommit: bool = False, *args, **kwargs):
+    def delete(self, autocommit: bool = True, *args, **kwargs):
         try:
             self._new_delete().where(self.__class__.id == self.id).delete(
                 autocommit=autocommit, *args, **kwargs

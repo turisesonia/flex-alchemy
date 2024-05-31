@@ -26,7 +26,6 @@ def test_update_builder_initial(builder: UpdateBuilder):
 
 
 def test_build_update_stmt(builder: UpdateBuilder):
-    builder._initial()
     stmt = builder._update_stmt
 
     assert isinstance(stmt, Update)

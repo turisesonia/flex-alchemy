@@ -12,22 +12,14 @@ class DeleteBuilder(WhereBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._delete_stmt: Delete = None
-
-    def _delete_stmt_initial(self):
-        if self._delete_stmt is None:
-            self._delete_stmt = delete(self.get_model_class())
+        self._delete_stmt: Delete = delete(self.get_model_class())
 
     def returning(self, *entities):
-        self._delete_stmt_initial()
-
         self._delete_stmt = self._delete_stmt.returning(*entities)
 
         return self
 
     def delete(self, autocommit: bool = False, *args, **kwargs) -> Result[Any]:
-        self._delete_stmt_initial()
-
         if self._where_clauses:
             self._delete_stmt = self._delete_stmt.where(*self._where_clauses)
 

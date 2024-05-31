@@ -37,12 +37,18 @@ class BaseBuilder(Generic[_M]):
 
 
 class WhereBase(BaseBuilder):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._where_clauses = ()
+    _where_clauses = ()
 
     def where(self, *express: BinaryExpression):
         self._where_clauses += (*express,)
+
+        return self
+
+
+class Returning:
+    _returning = ()
+
+    def returning(self, *entities):
+        self._returning += (*entities,)
 
         return self
