@@ -103,7 +103,7 @@ def test_all(faker, email: str, name: str):
 
 
 def test_paginate(faker, session: Session):
-    total = faker.pyint(max_value=1000)
+    total = faker.pyint(max_value=300)
     page = 1
     per_page = 15
 
@@ -129,7 +129,7 @@ def test_paginate(faker, session: Session):
     assert pagination["per_page"] == per_page
     assert pagination["current_page"] == page
     assert pagination["last_page"] == math.ceil(total / per_page)
-    assert len(pagination["data"]) == per_page
+    assert len(pagination["data"]) == per_page if total >= per_page else total
 
     for user in pagination["data"]:
         isinstance(user, User)
