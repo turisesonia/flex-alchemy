@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.engine.row import Row
 from sqlalchemy.engine.cursor import CursorResult
 
-from .models import User, Order
+from .models import User, Project
 
 
 def test_create(faker, email: str, name: str, session: Session):
@@ -38,13 +38,24 @@ def test_save(faker, email: str, name: str, session: Session):
 
 
 def test_find(faker, email: str, name: str):
-    user = User.create(email=email, name=name, password=faker.password())
+    user_id = User.create(email=email, name=name, password=faker.password()).id
 
-    user = User.find(user.id)
+    user = User.find(user_id)
 
     assert isinstance(user, User)
     assert user.email == email
     assert user.name == name
+
+
+def test_find_with_string_uuid(faker, name: str):
+    uuid = faker.uuid4()
+
+    Project.create(uuid=uuid, name=name)
+
+    project = Project.find(uuid)
+
+    assert isinstance(project, Project)
+    assert project.name == name
 
 
 def test_select_specific_fields(faker, email: str, name: str):
@@ -185,6 +196,24 @@ def test_model_delete(faker, email: str, name: str, session: Session):
         user_ = db.execute(select(User).where(User.id == user_id)).scalars().first()
 
         assert user_ is None
+
+
+def test_model_delete_with_customize_primary_key(faker, name: str, session: Session):
+    uuid = faker.uuid4()
+
+    project = Project.create(uuid=uuid, name=name)
+
+    assert isinstance(project, Project)
+
+    project.delete()
+
+    assert Project.find(uuid) is None
+
+    with session as db:
+        assert (
+            db.execute(select(Project).where(Project.uuid == uuid)).scalars().first()
+            is None
+        )
 
 
 def test_where_delete(faker, name: str, email: str):

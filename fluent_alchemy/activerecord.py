@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Any, Sequence
 
 from .session import ScopedSessionHandler
 from .builders.select import SelectBuilder
@@ -9,6 +9,8 @@ from .builders.where import WhereBuilder
 
 
 class ActiveRecord(ScopedSessionHandler):
+    __primary_key__: str = "id"
+
     @classmethod
     def select(cls, *entities):
         return cls()._new_select().select(*entities)
@@ -18,8 +20,10 @@ class ActiveRecord(ScopedSessionHandler):
         return cls()._new_select().first(**kwargs)
 
     @classmethod
-    def find(cls, id_: int, **kwargs):
-        return cls()._new_select().where(cls.id == id_).first(**kwargs)
+    def find(cls, id_: Any, **kwargs):
+        model_primary_key = getattr(cls, cls.__primary_key__)
+
+        return cls()._new_select().where(model_primary_key == id_).first(**kwargs)
 
     @classmethod
     def all(cls, **kwargs) -> Sequence:
@@ -117,7 +121,10 @@ class ActiveRecord(ScopedSessionHandler):
 
     def delete(self, autocommit: bool = True, *args, **kwargs):
         try:
-            self._new_delete().where(self.__class__.id == self.id).delete(
+            model_primary_key = getattr(self.__class__, self.__primary_key__)
+            model_value = getattr(self, self.__primary_key__)
+
+            self._new_delete().where(model_primary_key == model_value).delete(
                 autocommit=autocommit, *args, **kwargs
             )
 
