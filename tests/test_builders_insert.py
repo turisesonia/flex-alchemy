@@ -14,16 +14,16 @@ def session() -> Session:
 
 
 @pytest.fixture
-def builder(session: Session) -> InsertBuilder:
-    return InsertBuilder(session, User())
+def builder(mocker) -> InsertBuilder:
+    return InsertBuilder(mocker.Mock(), User())
 
 
-def test_insert_initial(builder: InsertBuilder):
+def test_initial(builder: InsertBuilder):
     assert isinstance(builder._model, User)
     assert builder.get_model_class() is User
 
 
-def test_insert_values_stmt(faker, builder: InsertBuilder):
+def test_set_values(faker, builder: InsertBuilder):
     values = {
         "name": faker.name(),
         "email": faker.email(),
@@ -41,10 +41,12 @@ def test_insert_values_stmt(faker, builder: InsertBuilder):
         assert values[column.name] == param.value
 
 
-def test_insert_returning_all(builder: InsertBuilder):
-    builder.returning(User)
+def test_set_returning_all(builder: InsertBuilder):
+    builder.returning(User).insert()
 
+    #
     stmt = builder._insert_stmt
+    builder._session.execute.assert_called_once_with(stmt)
 
     assert len(stmt._returning) > 0
 
@@ -52,10 +54,11 @@ def test_insert_returning_all(builder: InsertBuilder):
         assert isinstance(col, AnnotatedTable)
 
 
-def test_insert_returning_specific_fields(builder: InsertBuilder):
-    builder.returning(User.id, User.email)
+def test_set_returning_specific_fields(builder: InsertBuilder):
+    builder.returning(User.id, User.email).insert()
 
     stmt = builder._insert_stmt
+    builder._session.execute.assert_called_once_with(stmt)
 
     assert len(stmt._returning) > 0
 
@@ -65,7 +68,7 @@ def test_insert_returning_specific_fields(builder: InsertBuilder):
         assert col.name == validate_names[idx]
 
 
-def test_insert_execution_options(builder: InsertBuilder):
+def test_set_execution_options(builder: InsertBuilder):
     builder.execution_options(render_nulls=True)
 
     stmt = builder._insert_stmt
@@ -77,7 +80,9 @@ def test_insert_execution_options(builder: InsertBuilder):
         assert value
 
 
-def test_insert_execute(mocker, faker, session: Session, builder: InsertBuilder):
+def test_insert(mocker, faker, session: Session):
+    builder = InsertBuilder(session, User())
+
     mock_execute = mocker.patch.object(session, "execute")
     mock_commit = mocker.patch.object(session, "commit")
 

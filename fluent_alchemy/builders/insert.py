@@ -18,11 +18,6 @@ class InsertBuilder(BaseBuilder, Returning):
 
         return self
 
-    def returning(self, *entities):
-        self._insert_stmt = self._insert_stmt.returning(*entities)
-
-        return self
-
     def execution_options(self, **options):
         self._insert_stmt = self._insert_stmt.execution_options(**options)
 
