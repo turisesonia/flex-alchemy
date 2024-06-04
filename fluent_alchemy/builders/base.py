@@ -45,8 +45,18 @@ class WhereBase(BaseBuilder):
         return self
 
 
-class Returning:
+class ValueBase(BaseBuilder):
+    _values = None
+
     _returning = ()
+
+    def values(self, *args, **kwargs):
+        if args:
+            self._values = args[0]
+        else:
+            self._values = kwargs
+
+        return self
 
     def returning(self, *entities):
         self._returning += (*entities,)

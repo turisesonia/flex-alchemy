@@ -4,35 +4,29 @@ from sqlalchemy import Update, update
 from sqlalchemy.engine.result import Result
 from sqlalchemy.sql.elements import BinaryExpression
 
-from .base import BaseBuilder
+from .base import ValueBase
 
 
-class UpdateBuilder(BaseBuilder):
+class UpdateBuilder(ValueBase):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._update_stmt: Update = update(self.get_model_class())
 
-    def values(self, *args, **kwargs):
-        self._update_stmt = self._update_stmt.values(*args, **kwargs)
-
-        return self
-
     def where(self, *express: BinaryExpression):
         self._update_stmt = self._update_stmt.where(*express)
 
         return self
 
-    def returning(self, *entities):
-        self._update_stmt = self._update_stmt.returning(*entities)
+    def update(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
+        if not self._values:
+            raise ValueError("Values cannot be empty.")
 
-        return self
+        self._update_stmt = self._update_stmt.values(self._values)
 
-    def execute(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
-        if self._update_stmt is None:
-            # todo error message
-            raise ValueError("")
+        if self._returning:
+            self._update_stmt = self._update_stmt.returning(*self._returning)
 
         result = self._session.execute(self._update_stmt, *args, **kwargs)
 

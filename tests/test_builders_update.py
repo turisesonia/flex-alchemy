@@ -1,5 +1,6 @@
 import pytest
 
+from sqlalchemy import insert, select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Update
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
@@ -16,8 +17,17 @@ def session() -> Session:
 
 
 @pytest.fixture
-def builder(session: Session) -> UpdateBuilder:
-    return UpdateBuilder(session, User())
+def builder(mocker) -> UpdateBuilder:
+    return UpdateBuilder(mocker.Mock(), User())
+
+
+@pytest.fixture
+def fake_user(faker) -> dict:
+    return {
+        "name": faker.name(),
+        "email": faker.email(),
+        "password": faker.password(),
+    }
 
 
 def test_update_builder_initial(builder: UpdateBuilder):
@@ -32,16 +42,23 @@ def test_build_update_stmt(builder: UpdateBuilder):
     assert stmt.is_dml
 
 
-def test_build_update_stmt_with_single_where_clause(faker, builder: UpdateBuilder):
-    builder.where(User.email == faker.email())
+def test_build_update_stmt_with_single_where_clause(
+    faker, fake_user, builder: UpdateBuilder
+):
+    builder.values(fake_user).where(User.email == faker.email()).update()
     stmt = builder._update_stmt
 
     assert isinstance(stmt.whereclause, BinaryExpression)
     assert stmt.whereclause.left.name == "email"
 
 
-def test_build_update_stmt_with_multiple_where_clauses(faker, builder: UpdateBuilder):
-    builder.where(User.email == faker.email()).where(User.state.is_(False))
+def test_build_update_stmt_with_multiple_where_clauses(
+    faker, fake_user, builder: UpdateBuilder
+):
+    builder.values(fake_user).where(User.email == faker.email()).where(
+        User.state.is_(False)
+    ).update()
+
     stmt = builder._update_stmt
 
     assert isinstance(stmt.whereclause, BooleanClauseList)
@@ -55,8 +72,8 @@ def test_build_update_stmt_with_multiple_where_clauses(faker, builder: UpdateBui
     assert stmt.is_dml
 
 
-def test_build_update_stmt_with_returning(builder: UpdateBuilder):
-    builder.returning(User.id, User.email)
+def test_build_update_stmt_with_returning(fake_user, builder: UpdateBuilder):
+    builder.values(fake_user).returning(User.id, User.email).update()
 
     stmt = builder._update_stmt
 
@@ -68,8 +85,8 @@ def test_build_update_stmt_with_returning(builder: UpdateBuilder):
         assert col.name == validate_names[idx]
 
 
-def test_build_update_stmt_with_returning_all(builder: UpdateBuilder):
-    builder.returning(User)
+def test_build_update_stmt_with_returning_all(fake_user, builder: UpdateBuilder):
+    builder.values(fake_user).returning(User).update()
 
     stmt = builder._update_stmt
 
@@ -79,32 +96,78 @@ def test_build_update_stmt_with_returning_all(builder: UpdateBuilder):
         assert isinstance(col, AnnotatedTable)
 
 
-def test_build_update_stmt_with_values(faker, builder: UpdateBuilder):
-    values = {
-        "name": faker.name(),
-        "email": faker.email(),
-    }
-
-    builder.values(**values)
+def test_build_update_stmt_with_values(fake_user, builder: UpdateBuilder):
+    builder.values(fake_user).update()
 
     stmt = builder._update_stmt
 
     for column, param in stmt._values.items():
-        assert values[column.name] == param.value
+        assert fake_user[column.name] == param.value
 
 
-def test_update_execute(mocker, faker, session: Session, builder: UpdateBuilder):
-    mock_execute = mocker.patch.object(session, "execute")
-    mock_commit = mocker.patch.object(session, "commit")
+def test_update_without_where_clause(faker, fake_user, session: Session):
+    # seed
+    with session() as db:
+        db.execute(
+            insert(User).values(
+                [
+                    {
+                        "name": faker.name(),
+                        "email": faker.email(),
+                        "password": faker.password(),
+                    }
+                    for _ in range(faker.pyint(max_value=10))
+                ]
+            )
+        )
+        db.commit()
 
-    values = {
+    # update all
+    UpdateBuilder(session, User()).values(name=fake_user["name"]).update()
+
+    # validate
+    with session() as db:
+        users = db.scalars(select(User)).all()
+
+        for user in users:
+            assert user.name == fake_user["name"]
+            assert user.email != fake_user["email"]
+            assert user.password != fake_user["password"]
+
+
+def test_update_with_where_clause(faker, fake_user, session: Session):
+    target = {
         "name": faker.name(),
         "email": faker.email(),
         "password": faker.password(),
     }
 
-    builder.values(values)
-    builder.execute()
+    # seed
+    with session() as db:
+        values = [
+            {
+                "name": faker.name(),
+                "email": faker.email(),
+                "password": faker.password(),
+            }
+            for _ in range(faker.pyint(max_value=10))
+        ]
+        values.append(target)
 
-    mock_execute.assert_called_once_with(builder._update_stmt)
-    mock_commit.assert_called_once()
+        db.execute(insert(User).values(values))
+        db.commit()
+
+    # update with where clause
+    UpdateBuilder(session, User()).where(User.email == target["email"]).values(
+        name=fake_user["name"]
+    ).update()
+
+    # validate
+    with session() as db:
+        users = db.scalars(select(User)).all()
+
+        for user in users:
+            if user.email == target["email"]:
+                assert user.name == fake_user["name"]
+            else:
+                assert user.name != fake_user["name"]

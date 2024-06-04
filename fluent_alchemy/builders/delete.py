@@ -19,7 +19,7 @@ class DeleteBuilder(WhereBase):
 
         return self
 
-    def delete(self, autocommit: bool = False, *args, **kwargs) -> Result[Any]:
+    def delete(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
         if self._where_clauses:
             self._delete_stmt = self._delete_stmt.where(*self._where_clauses)
 

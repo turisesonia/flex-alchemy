@@ -1,5 +1,6 @@
 import pytest
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Insert
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
@@ -30,7 +31,7 @@ def test_set_values(faker, builder: InsertBuilder):
         "password": faker.password(),
     }
 
-    builder.values(**values)
+    builder.values(**values).insert()
 
     stmt = builder._insert_stmt
 
@@ -41,8 +42,14 @@ def test_set_values(faker, builder: InsertBuilder):
         assert values[column.name] == param.value
 
 
-def test_set_returning_all(builder: InsertBuilder):
-    builder.returning(User).insert()
+def test_set_returning_all(faker, builder: InsertBuilder):
+    values = {
+        "name": faker.name(),
+        "email": faker.email(),
+        "password": faker.password(),
+    }
+
+    builder.values(values).returning(User).insert()
 
     #
     stmt = builder._insert_stmt
@@ -54,8 +61,14 @@ def test_set_returning_all(builder: InsertBuilder):
         assert isinstance(col, AnnotatedTable)
 
 
-def test_set_returning_specific_fields(builder: InsertBuilder):
-    builder.returning(User.id, User.email).insert()
+def test_set_returning_specific_fields(faker, builder: InsertBuilder):
+    values = {
+        "name": faker.name(),
+        "email": faker.email(),
+        "password": faker.password(),
+    }
+
+    builder.values(values).returning(User.id, User.email).insert()
 
     stmt = builder._insert_stmt
     builder._session.execute.assert_called_once_with(stmt)
@@ -80,27 +93,44 @@ def test_set_execution_options(builder: InsertBuilder):
         assert value
 
 
-def test_insert(mocker, faker, session: Session):
-    builder = InsertBuilder(session, User())
-
-    mock_execute = mocker.patch.object(session, "execute")
-    mock_commit = mocker.patch.object(session, "commit")
-
+def test_insert_multiple(faker, session: Session):
+    count = faker.pyint(max_value=10)
     values = [
         {
             "name": faker.name(),
             "email": faker.email(),
             "password": faker.password(),
-        },
-        {
-            "name": faker.name(),
-            "email": faker.email(),
-            "password": faker.password(),
-        },
+        }
+        for _ in range(count)
     ]
 
-    builder.values(values)
-    builder.insert()
+    builder = InsertBuilder(session, User())
+    builder.values(values).insert()
 
-    mock_execute.assert_called_once_with(builder._insert_stmt)
-    mock_commit.assert_called_once()
+    with session() as db:
+        users = db.scalars(select(User)).all()
+
+        assert len(users) == count
+
+        for idx, user in enumerate(users):
+            assert user.name == values[idx]["name"]
+            assert user.email == values[idx]["email"]
+            assert user.password == values[idx]["password"]
+
+
+def test_insert_single(faker, session: Session):
+    values = {
+        "name": faker.name(),
+        "email": faker.email(),
+        "password": faker.password(),
+    }
+
+    builder = InsertBuilder(session, User())
+    builder.values(values).insert()
+
+    with session() as db:
+        user = db.scalars(select(User)).first()
+
+        assert user.name == values["name"]
+        assert user.email == values["email"]
+        assert user.password == values["password"]
