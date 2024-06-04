@@ -5,7 +5,7 @@ from .builders.select import SelectBuilder
 from .builders.insert import InsertBuilder
 from .builders.update import UpdateBuilder
 from .builders.delete import DeleteBuilder
-from .builders.where import WhereBuilder
+from .builders.complex import WhereBuilder, ValuesBuilder
 
 
 class ActiveRecord(ScopedSessionHandler):
@@ -64,29 +64,8 @@ class ActiveRecord(ScopedSessionHandler):
         return instance
 
     @classmethod
-    def insert(
-        cls,
-        values,
-        returning: Sequence = None,
-        options: dict = None,
-        autocommit: bool = True,
-        *args,
-        **kwargs,
-    ) -> InsertBuilder:
-        builder = cls()._new_insert()
-
-        builder.values(values)
-
-        if returning:
-            if not isinstance(returning, Sequence):
-                returning = (returning,)
-
-            builder.returning(*returning)
-
-        if options:
-            builder.execution_options(**options)
-
-        return builder.insert(autocommit=autocommit, *args, **kwargs)
+    def values(cls, *args, **kwargs):
+        return cls()._new_values().values(*args, **kwargs)
 
     @classmethod
     def update(cls):
@@ -106,6 +85,9 @@ class ActiveRecord(ScopedSessionHandler):
 
     def _new_where(self) -> WhereBuilder:
         return WhereBuilder(self._session, self)
+
+    def _new_values(self) -> ValuesBuilder:
+        return ValuesBuilder(self._session, self)
 
     def save(self, refresh: bool = True):
         try:

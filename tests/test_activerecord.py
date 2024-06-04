@@ -89,7 +89,7 @@ def test_where(faker, email: str, name: str):
     assert user.name == name
 
 
-def test_update(faker, email: str, name: str):
+def test_model_save(faker, email: str, name: str):
     old_password = faker.password()
     new_password = faker.password()
 
@@ -153,7 +153,7 @@ def test_insert_single(faker):
         "password": faker.password(),
     }
 
-    User.insert(values)
+    User.values(values).insert()
 
     user = User.first()
     assert isinstance(user, User)
@@ -166,7 +166,7 @@ def test_insert_single(faker):
 def test_insert_multiple(faker):
     total = 10
 
-    User.insert(
+    User.values(
         [
             {
                 "name": faker.name(),
@@ -175,7 +175,7 @@ def test_insert_multiple(faker):
             }
             for _ in range(total)
         ]
-    )
+    ).insert()
 
     users = User.all()
 
