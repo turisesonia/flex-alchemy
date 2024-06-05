@@ -1,51 +1,57 @@
-from typing import Sequence, Optional
+from typing import Any, Sequence
 
 from .session import ScopedSessionHandler
-from .builders.query import QueryBuilder
+from .builders.select import SelectBuilder
+from .builders.delete import DeleteBuilder
+from .builders.complex import WhereBuilder, ValuesBuilder
 
 
 class ActiveRecord(ScopedSessionHandler):
+    __primary_key__: str = "id"
+
     @classmethod
     def select(cls, *entities):
-        return cls()._new_query().select(*entities)
+        return cls()._new_select().select(*entities)
 
     @classmethod
     def first(cls, **kwargs):
-        return cls()._new_query().first(**kwargs)
+        return cls()._new_select().first(**kwargs)
 
     @classmethod
-    def find(cls, id_: int, **kwargs):
-        return cls()._new_query().where(cls.id == id_).first(**kwargs)
+    def find(cls, id_: Any, **kwargs):
+        model_primary_key = getattr(cls, cls.__primary_key__)
+
+        return cls()._new_select().where(model_primary_key == id_).first(**kwargs)
 
     @classmethod
     def all(cls, **kwargs) -> Sequence:
-        return cls()._new_query().get(**kwargs)
+        return cls()._new_select().select().get(**kwargs)
 
     @classmethod
     def where(cls, *express):
-        return cls()._new_query().where(*express)
+        return cls()._new_where().where(*express)
 
     @classmethod
     def order_by(cls, *express):
-        return cls()._new_query().order_by(*express)
+        return cls()._new_select().order_by(*express)
 
     @classmethod
     def offset(cls, offset: int = 0):
         if not isinstance(offset, int):
             raise ValueError
 
-        return cls()._new_query().offset(offset)
+        return cls()._new_select().offset(offset)
 
     @classmethod
     def limit(cls, limit: int = 0):
         if not isinstance(limit, int):
             raise ValueError
 
-        return cls()._new_query().limit(limit)
+        return cls()._new_select().limit(limit)
 
     @classmethod
     def paginate(cls, page: int = 1, per_page: int = 50, **kwargs):
-        return cls()._new_query().paginate(page, per_page, **kwargs)
+        return cls()._new_select().paginate(page, per_page, **kwargs)
 
     @classmethod
     def create(cls, **attributes):
@@ -56,31 +62,20 @@ class ActiveRecord(ScopedSessionHandler):
         return instance
 
     @classmethod
-    def insert(
-        cls,
-        values: list[dict],
-        returning: Optional[list] = None,
-        execution_options: Optional[dict] = None,
-    ):
-        builder = cls()._new_query()
+    def values(cls, *args, **kwargs):
+        return cls()._new_values().values(*args, **kwargs)
 
-        if returning:
-            builder.returning(*returning)
+    def _new_select(self) -> SelectBuilder:
+        return SelectBuilder(self._session, self)
 
-        if execution_options:
-            builder.execution_options(**execution_options)
+    def _new_delete(self) -> DeleteBuilder:
+        return DeleteBuilder(self._session, self)
 
-        return builder.insert(values)
+    def _new_where(self) -> WhereBuilder:
+        return WhereBuilder(self._session, self)
 
-    def _new_query(self) -> QueryBuilder:
-        scopes = {}
-
-        for base in self.__class__.__bases__:
-            if hasattr(base, "scope_registry"):
-                scope = base.scope_registry()
-                scopes[scope.__class__] = scope
-
-        return QueryBuilder(self._session, self).apply_scopes(scopes)
+    def _new_values(self) -> ValuesBuilder:
+        return ValuesBuilder(self._session, self)
 
     def save(self, refresh: bool = True):
         try:
@@ -94,9 +89,14 @@ class ActiveRecord(ScopedSessionHandler):
             self._session.rollback()
             raise e
 
-    def delete(self, force: bool = False):
+    def delete(self, autocommit: bool = True, *args, **kwargs):
         try:
-            self._new_query().where(self.__class__.id == self.id).delete(force)
+            model_primary_key = getattr(self.__class__, self.__primary_key__)
+            model_value = getattr(self, self.__primary_key__)
+
+            self._new_delete().where(model_primary_key == model_value).delete(
+                autocommit=autocommit, *args, **kwargs
+            )
 
         except Exception as e:
             self._session.rollback()

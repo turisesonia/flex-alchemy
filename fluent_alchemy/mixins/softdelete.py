@@ -2,13 +2,12 @@ from typing import Optional
 from datetime import datetime
 from sqlalchemy import TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
-
-from ..scopes.softdelete import SoftDeleteScope
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class SoftDeleteMixin:
     deleted_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(), nullable=True)
 
-    @classmethod
-    def scope_registry(cls) -> SoftDeleteScope:
-        return SoftDeleteScope()
+    @hybrid_property
+    def without_trashed(self):
+        return self.deleted_at.is_(None)

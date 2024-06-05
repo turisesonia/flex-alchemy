@@ -1,40 +1,127 @@
 import math
-from typing import Optional, Iterable
 
-from sqlalchemy import select, func
+from typing import Any, Optional, Iterable
+
+from sqlalchemy import select, func, Executable
+from sqlalchemy.sql.elements import BinaryExpression, UnaryExpression
+from sqlalchemy.engine.result import Result
+from sqlalchemy.orm.strategy_options import Load
 from sqlalchemy.sql import Select
 
 from . import _M
-from .base import BaseBuilder
+from .base import WhereBase
 
 
-class SelectBuilder(BaseBuilder):
-    def first(self, stmt: Optional[Select] = None, **kwargs) -> Optional[_M]:
-        stmt = stmt if stmt is not None else self._select_stmt(**kwargs)
+class SelectBuilder(WhereBase):
 
-        if len(self._select_entities) > 1:
-            return self.execute(stmt).first()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        return self.execute(stmt).scalars().first()
+        self._select_stmt: Select = None
 
-    def get(self, stmt: Optional[Select] = None, **kwargs) -> Iterable[_M]:
-        stmt = stmt if stmt is not None else self._select_stmt(**kwargs)
+    def _select_stmt_init(self):
+        if self._select_stmt is None:
+            self._select_stmt = select(self.get_model_class())
 
-        if len(self._select_entities) > 1:
-            return self.execute(stmt).all()
+    def select(self, *entities):
+        if self._select_stmt is not None:
+            # TODO select statement is already initial
+            raise Exception("")
 
-        return self.execute(stmt).scalars().all()
+        if not entities:
+            self._select_stmt = select(self.get_model_class())
+        else:
+            self._select_stmt = select(*entities)
 
-    def paginate(self, page: int = 1, per_page: int = 50) -> dict:
-        self._offset = (page - 1) * per_page
-        self._limit = per_page
+        return self
 
-        total_rows = self.first(
-            self._select_stmt(
-                select(func.count()).select_from(self.get_model_class()),
-                pageable=True,
-            )
-        )
+    def offset(self, offset: int):
+        self._select_stmt_init()
+
+        self._select_stmt = self._select_stmt.offset(offset)
+
+        return self
+
+    def limit(self, limit: int):
+        self._select_stmt_init()
+
+        self._select_stmt = self._select_stmt.limit(limit)
+
+        return self
+
+    def group_by(self, *entities):
+        self._select_stmt_init()
+
+        self._select_stmt = self._select_stmt.group_by(*entities)
+
+        return self
+
+    def having(self, *express: BinaryExpression):
+        self._select_stmt_init()
+
+        self._select_stmt = self._select_stmt.having(*express)
+
+        return self
+
+    def order_by(self, *express: UnaryExpression):
+        self._select_stmt_init()
+
+        self._select_stmt = self._select_stmt.order_by(*express)
+
+        return self
+
+    def options(self, *options: Load):
+        self._select_stmt_init()
+
+        self._select_stmt = self._select_stmt.options(*options)
+
+        return self
+
+    def execute(
+        self, stmt: Optional[Executable] = None, *args, **kwargs
+    ) -> Result[Any]:
+        stmt = stmt if stmt is not None else self._select_stmt
+
+        return self._session.execute(stmt, *args, **kwargs)
+
+    def first(self, specific_fields: bool = False) -> Optional[_M]:
+        self._select_stmt_init()
+
+        if self._where_clauses:
+            self._select_stmt = self._select_stmt.where(*self._where_clauses)
+
+        result = self.execute()
+
+        if specific_fields:
+            return result.first()
+
+        return result.scalars().first()
+
+    def get(self, specific_fields: bool = False) -> Iterable[_M]:
+        self._select_stmt_init()
+
+        if self._where_clauses:
+            self._select_stmt = self._select_stmt.where(*self._where_clauses)
+
+        result = self.execute()
+
+        if specific_fields:
+            return result.all()
+
+        return result.scalars().all()
+
+    def paginate(self, page: int = 1, per_page: int = 30) -> dict:
+        self.offset((page - 1) * per_page)
+        self.limit(per_page)
+
+        if self._where_clauses:
+            self._select_stmt = self._select_stmt.where(*self._where_clauses)
+
+        total_stmt = select(func.count()).select_from(self.get_model_class())
+        if self._select_stmt.whereclause is not None:
+            total_stmt = total_stmt.where(self._select_stmt.whereclause)
+
+        total_rows = self.execute(total_stmt).scalars().first()
 
         return {
             "total": total_rows,
@@ -43,40 +130,3 @@ class SelectBuilder(BaseBuilder):
             "last_page": math.ceil(total_rows / per_page),
             "data": self.get(),
         }
-
-    def _select_stmt(
-        self, stmt: Optional[Select] = None, pageable: bool = False, **kwargs
-    ) -> Select:
-        if stmt is None:
-            stmt = (
-                select(*self._select_entities)
-                if self._select_entities
-                else select(self.get_model_class())
-            )
-
-        # apply scopes query
-        for _, scope in self._scopes.items():
-            scope.apply(**kwargs)
-
-        if self._where_clauses:
-            stmt = stmt.where(*self._where_clauses)
-
-        if not pageable and self._group_clauses:
-            stmt = stmt.group_by(*self._group_clauses)
-
-        if not pageable and self._group_clauses and self._having_clauses:
-            stmt = stmt.group_by(*self._having_clauses)
-
-        if not pageable and self._order_clauses:
-            stmt = stmt.order_by(*self._order_clauses)
-
-        if not pageable and self._offset is not None:
-            stmt = stmt.offset(self._offset)
-
-        if not pageable and self._limit is not None:
-            stmt = stmt.limit(self._limit)
-
-        if self._options:
-            stmt = stmt.options(*self._options)
-
-        return stmt

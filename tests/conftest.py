@@ -30,9 +30,11 @@ def session(engine) -> Session:
 
 @pytest.fixture(autouse=True)
 def _test_session(engine):
-    APP_DEBUG: bool = bool(os.getenv("APP_DEBUG"))
+    APP_DEBUG: bool = (
+        True if os.getenv("APP_DEBUG", "false").lower() == "true" else False
+    )
 
-    # engine.echo = True
+    engine.echo = APP_DEBUG
 
     Base.metadata.create_all(engine)
     Base.set_engine(engine)

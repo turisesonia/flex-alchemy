@@ -232,9 +232,6 @@ sw.*
 # Vim swap files
 *.swp
 
-poetry.lock
-yarn.lock
-
 dev*.py
 credential.sh
 .python-version

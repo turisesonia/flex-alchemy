@@ -1,30 +1,35 @@
-from typing import Any, Optional
+from typing import Any
 
-from sqlalchemy import insert
-from sqlalchemy.sql.dml import Insert
+from sqlalchemy import Insert, insert
 from sqlalchemy.engine.result import Result
 
-from .base import BaseBuilder
+from .base import ValueBase
 
 
-class InsertBuilder(BaseBuilder):
-    def _insert_stmt(self, stmt: Optional[Insert] = None, **kwargs) -> Insert:
-        if stmt is None:
-            stmt = insert(self.get_model_class())
+class InsertBuilder(ValueBase):
 
-        if self._returnings:
-            stmt = stmt.returning(*self._returnings)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        if self._execution_options:
-            stmt = stmt.execution_options(**self._execution_options)
+        self._insert_stmt: Insert = insert(self.get_model_class())
 
-        return stmt
+    def execution_options(self, **options):
+        self._insert_stmt = self._insert_stmt.execution_options(**options)
 
-    def insert(self, values: list[dict]) -> Result[Any]:
-        stmt = self._insert_stmt()
+        return self
 
-        result = self.execute(stmt, values)
+    def insert(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
+        if not self._values:
+            raise ValueError("Values cannot be empty.")
 
-        self._session.commit()
+        self._insert_stmt = self._insert_stmt.values(self._values)
+
+        if self._returning:
+            self._insert_stmt = self._insert_stmt.returning(*self._returning)
+
+        result = self._session.execute(self._insert_stmt, *args, **kwargs)
+
+        if autocommit:
+            self._commit()
 
         return result
