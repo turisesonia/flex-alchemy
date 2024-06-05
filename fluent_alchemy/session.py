@@ -7,13 +7,13 @@ class ScopedSessionHandler:
     _session: Optional[scoped_session] = None
 
     @classmethod
-    def set_engine(cls, engine: Engine):
+    def make_session(cls, engine: Engine):
         if not isinstance(engine, Engine):
             raise ValueError("Only support Sqlalchemy Engine Object")
 
         cls._session = scoped_session(sessionmaker(engine))
 
     @classmethod
-    def remove_scoped_session(cls):
+    def teardown_session(cls):
         if cls._session:
             cls._session.remove()

@@ -37,12 +37,12 @@ def _test_session(engine):
     engine.echo = APP_DEBUG
 
     Base.metadata.create_all(engine)
-    Base.set_engine(engine)
+    Base.make_session(engine)
 
     # yield, to let all tests within the scope run
     yield
 
-    Base.remove_scoped_session()
+    Base.teardown_session()
     Base.metadata.drop_all(engine)
 
 
@@ -64,7 +64,7 @@ def email(faker):
 
 #     # set_up: fill table at beginning of scope
 #     # populate_purchase_table_with_data(db, data)
-#     Base.set_engine(
+#     Base.make_session(
 #         create_engine(
 #             # "sqlite:///tests/database/test.db",
 #             "sqlite:///tests/database/test.db",
@@ -77,6 +77,6 @@ def email(faker):
 #     # yield, to let all tests within the scope run
 #     yield
 
-#     Base.remove_scoped_session()
+#     Base.teardown_session()
 
 #     downgrade(alembic_cfg, "base")
