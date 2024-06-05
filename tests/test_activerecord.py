@@ -184,6 +184,27 @@ def test_insert_multiple(faker):
         assert isinstance(user, User)
 
 
+def test_update(faker):
+    # seed
+    User.values(
+        [
+            {
+                "name": faker.name(),
+                "email": faker.email(),
+                "password": faker.password(),
+            }
+            for _ in range(5)
+        ]
+    ).insert()
+
+    updated = {"name": "updated_name"}
+
+    User.values(name=updated["name"]).update()
+
+    for user in User.all():
+        assert user.name == updated["name"]
+
+
 def test_model_delete(faker, email: str, name: str, session: Session):
     user = User.create(email=email, name=name, password=faker.password())
     user_id = user.id

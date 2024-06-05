@@ -2,8 +2,6 @@ from typing import Any, Sequence
 
 from .session import ScopedSessionHandler
 from .builders.select import SelectBuilder
-from .builders.insert import InsertBuilder
-from .builders.update import UpdateBuilder
 from .builders.delete import DeleteBuilder
 from .builders.complex import WhereBuilder, ValuesBuilder
 
@@ -67,18 +65,8 @@ class ActiveRecord(ScopedSessionHandler):
     def values(cls, *args, **kwargs):
         return cls()._new_values().values(*args, **kwargs)
 
-    @classmethod
-    def update(cls):
-        return cls()._new_update()
-
     def _new_select(self) -> SelectBuilder:
         return SelectBuilder(self._session, self)
-
-    def _new_insert(self) -> InsertBuilder:
-        return InsertBuilder(self._session, self)
-
-    def _new_update(self) -> UpdateBuilder:
-        return UpdateBuilder(self._session, self)
 
     def _new_delete(self) -> DeleteBuilder:
         return DeleteBuilder(self._session, self)
