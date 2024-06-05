@@ -94,7 +94,7 @@ def test_set_execution_options(builder: InsertBuilder):
 
 
 def test_insert_multiple(faker, session: Session):
-    count = faker.pyint(max_value=10)
+    count = faker.pyint(min_value=1, max_value=10)
     values = [
         {
             "name": faker.name(),

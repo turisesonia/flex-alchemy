@@ -116,7 +116,7 @@ def test_update_without_where_clause(faker, fake_user, session: Session):
                         "email": faker.email(),
                         "password": faker.password(),
                     }
-                    for _ in range(faker.pyint(max_value=10))
+                    for _ in range(faker.pyint(min_value=1, max_value=10))
                 ]
             )
         )
