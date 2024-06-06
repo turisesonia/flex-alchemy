@@ -2,10 +2,10 @@ from typing import List
 
 import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from fluent_alchemy import ActiveRecord, TimestampMixin, SoftDeleteMixin
+from fluent_alchemy import ActiveRecord, TimestampMixin
 
 
-class Base(DeclarativeBase, ActiveRecord):
+class Model(DeclarativeBase, ActiveRecord):
     def __repr__(self) -> str:
         """Returns representation of the object"""
 
@@ -17,7 +17,7 @@ class Base(DeclarativeBase, ActiveRecord):
         )
 
 
-class User(Base, TimestampMixin):
+class User(TimestampMixin, Model):
     __tablename__ = "users"
     __repr_attrs__ = ("id", "email", "name", "state")
 
@@ -32,7 +32,7 @@ class User(Base, TimestampMixin):
     orders: Mapped[List["Order"]] = relationship(back_populates="user")
 
 
-class Order(Base, TimestampMixin, SoftDeleteMixin):
+class Order(TimestampMixin, Model):
     __tablename__ = "orders"
     __repr_attrs__ = ("id", "uuid", "cost")
 
@@ -48,7 +48,8 @@ class Order(Base, TimestampMixin, SoftDeleteMixin):
     user: Mapped[User] = relationship(back_populates="orders")
 
 
-class Project(Base, TimestampMixin):
+# for dynamic setting primary key test
+class Project(TimestampMixin, Model):
     __tablename__ = "projects"
     __repr_attrs__ = ("uuid", "name")
     __primary_key__ = "uuid"

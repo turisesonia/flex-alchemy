@@ -8,12 +8,12 @@ from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
 from fluent_alchemy.builders.delete import DeleteBuilder
 
-from .models import Base, User
+from .models import Model, User
 
 
 @pytest.fixture
 def session() -> Session:
-    return Base._session
+    return Model._session
 
 
 @pytest.fixture

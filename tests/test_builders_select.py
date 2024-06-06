@@ -17,12 +17,12 @@ from sqlalchemy.exc import InvalidRequestError
 
 from fluent_alchemy.builders.select import SelectBuilder
 
-from .models import Base, User, Order
+from .models import Model, User, Order
 
 
 @pytest.fixture
 def session() -> scoped_session:
-    return Base._session
+    return Model._session
 
 
 @pytest.fixture

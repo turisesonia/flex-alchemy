@@ -6,12 +6,12 @@ from sqlalchemy.sql.dml import Insert
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
 from fluent_alchemy.builders.insert import InsertBuilder
-from .models import Base, User
+from .models import Model, User
 
 
 @pytest.fixture
 def session() -> Session:
-    return Base._session
+    return Model._session
 
 
 @pytest.fixture

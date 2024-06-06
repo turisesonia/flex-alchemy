@@ -5,7 +5,7 @@ from faker import Faker
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import sessionmaker, Session
-from tests.models import Base
+from tests.models import Model
 
 
 @pytest.fixture
@@ -36,14 +36,14 @@ def _test_session(engine):
 
     engine.echo = APP_DEBUG
 
-    Base.metadata.create_all(engine)
-    Base.make_session(engine)
+    Model.metadata.create_all(engine)
+    Model.make_session(engine)
 
     # yield, to let all tests within the scope run
     yield
 
-    Base.teardown_session()
-    Base.metadata.drop_all(engine)
+    Model.teardown_session()
+    Model.metadata.drop_all(engine)
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def email(faker):
 
 #     # set_up: fill table at beginning of scope
 #     # populate_purchase_table_with_data(db, data)
-#     Base.make_session(
+#     Model.make_session(
 #         create_engine(
 #             # "sqlite:///tests/database/test.db",
 #             "sqlite:///tests/database/test.db",
@@ -77,6 +77,6 @@ def email(faker):
 #     # yield, to let all tests within the scope run
 #     yield
 
-#     Base.teardown_session()
+#     Model.teardown_session()
 
 #     downgrade(alembic_cfg, "base")
