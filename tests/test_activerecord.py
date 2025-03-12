@@ -22,7 +22,7 @@ def test_create(faker, email: str, name: str, session: Session):
         assert isinstance(u, User)
 
 
-def test_save(faker, email: str, name: str, session: Session):
+def test_save(mocker, faker, email: str, name: str, session: Session):
     user = User(email=email, name=name, password=faker.password())
 
     user.save()

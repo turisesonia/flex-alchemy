@@ -18,10 +18,8 @@ class ActiveRecord(ScopedSessionHandler):
         return cls()._new_select().first(**kwargs)
 
     @classmethod
-    def find(cls, id_: Any, **kwargs):
-        model_primary_key = getattr(cls, cls.__primary_key__)
-
-        return cls()._new_select().where(model_primary_key == id_).first(**kwargs)
+    def find(cls, pk: Any):
+        return cls._session.get(cls, pk)
 
     @classmethod
     def all(cls, **kwargs) -> Sequence:

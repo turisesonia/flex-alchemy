@@ -15,7 +15,7 @@ from sqlalchemy.sql.selectable import _OffsetLimitParam
 from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.exc import InvalidRequestError
 
-from fluent_alchemy.builders.select import SelectBuilder
+from src.builders.select import SelectBuilder
 
 from .models import Model, User, Order
 
