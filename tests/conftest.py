@@ -5,7 +5,7 @@ from faker import Faker
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import sessionmaker, Session
-from tests.models import Model
+# from tests.models import Modelfrom .models import Model
 
 
 @pytest.fixture
@@ -28,22 +28,22 @@ def session(engine) -> Session:
     return sessionmaker(engine)()
 
 
-@pytest.fixture(autouse=True)
-def _test_session(engine):
-    APP_DEBUG: bool = (
-        True if os.getenv("APP_DEBUG", "false").lower() == "true" else False
-    )
+# @pytest.fixture(autouse=True)
+# def _test_session(engine):
+#     APP_DEBUG: bool = (
+#         True if os.getenv("APP_DEBUG", "false").lower() == "true" else False
+#     )
 
-    engine.echo = APP_DEBUG
+#     engine.echo = APP_DEBUG
 
-    Model.metadata.create_all(engine)
-    Model.make_session(engine)
+#     Model.metadata.create_all(engine)
+#     Model.make_session(engine)
 
-    # yield, to let all tests within the scope run
-    yield
+#     # yield, to let all tests within the scope run
+#     yield
 
-    Model.teardown_session()
-    Model.metadata.drop_all(engine)
+#     Model.teardown_session()
+#     Model.metadata.drop_all(engine)
 
 
 @pytest.fixture

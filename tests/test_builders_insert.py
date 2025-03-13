@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Insert
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
-from fluent_alchemy.builders.insert import InsertBuilder
+from src.builders.insert import InsertBuilder
 from .models import Model, User
 
 

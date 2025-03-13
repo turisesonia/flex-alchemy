@@ -6,7 +6,7 @@ from sqlalchemy.sql.dml import Update
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
-from fluent_alchemy.builders.update import UpdateBuilder
+from src.builders.update import UpdateBuilder
 
 from .models import Model, User
 

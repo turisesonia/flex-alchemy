@@ -2,7 +2,7 @@ from typing import List
 
 import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from fluent_alchemy import ActiveRecord, TimestampMixin
+from src import ActiveRecord, TimestampMixin
 
 
 class Model(DeclarativeBase, ActiveRecord):
@@ -17,7 +17,7 @@ class Model(DeclarativeBase, ActiveRecord):
         )
 
 
-class User(TimestampMixin, Model):
+class User(Model, TimestampMixin):
     __tablename__ = "users"
     __repr_attrs__ = ("id", "email", "name", "state")
 
@@ -32,7 +32,7 @@ class User(TimestampMixin, Model):
     orders: Mapped[List["Order"]] = relationship(back_populates="user")
 
 
-class Order(TimestampMixin, Model):
+class Order(Model, TimestampMixin):
     __tablename__ = "orders"
     __repr_attrs__ = ("id", "uuid", "cost")
 
@@ -49,7 +49,7 @@ class Order(TimestampMixin, Model):
 
 
 # for dynamic setting primary key test
-class Project(TimestampMixin, Model):
+class Project(Model, TimestampMixin):
     __tablename__ = "projects"
     __repr_attrs__ = ("uuid", "name")
     __primary_key__ = "uuid"
