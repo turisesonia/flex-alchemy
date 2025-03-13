@@ -1,4 +1,3 @@
-import uuid
 import typing as t
 
 import sqlalchemy as sa
@@ -7,7 +6,7 @@ from src import ActiveRecord
 
 
 class Base(DeclarativeBase, ActiveRecord):
-    id: Mapped[int] = mapped_column(sa.Uuid(), default=uuid.uuid4, primary_key=True)
+    id: Mapped[int] = mapped_column(sa.BigInteger(), primary_key=True)
 
     def __repr__(self) -> str:
         """Returns representation of the object"""

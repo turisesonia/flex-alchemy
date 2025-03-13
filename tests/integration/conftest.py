@@ -4,6 +4,7 @@ import pytest
 from dotenv import load_dotenv
 
 from sqlalchemy import create_engine, Engine
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.engine import URL
 
 from example.models.base import Base
@@ -37,13 +38,29 @@ def engine() -> Engine:
     )
 
 
+@pytest.fixture(scope="session")
+def session(engine: Engine) -> Session:
+    return sessionmaker(engine, future=True)()
+
+
 @pytest.fixture(autouse=True)
-def bind_session(engine: Engine):
-    Base.metadata.create_all(engine)
+def bind_session(engine: Engine, session: Session):
+    import sqlalchemy as sa
+
     Base.make_session(engine)
 
-    # yield, to let all tests within the scope run
-    yield
+    with session as db:
+        yield
+
+        if engine.dialect.name == "postgresql":
+            db.execute(sa.text("SET CONSTRAINTS ALL DEFERRED"))
+
+        for table in reversed(Base.metadata.sorted_tables):
+            db.execute(table.delete())
+
+        if engine.dialect.name == "postgresql":
+            db.execute(sa.text("SET CONSTRAINTS ALL IMMEDIATE"))
+
+        db.commit()
 
     Base.teardown_session()
-    Base.metadata.drop_all(engine)

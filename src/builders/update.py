@@ -4,10 +4,10 @@ from sqlalchemy import Update, update
 from sqlalchemy.engine.result import Result
 from sqlalchemy.sql.elements import BinaryExpression
 
-from .base import ValueBase
+from .base import BaseValueBuilder
 
 
-class UpdateBuilder(ValueBase):
+class UpdateBuilder(BaseValueBuilder):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

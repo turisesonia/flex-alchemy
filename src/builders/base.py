@@ -17,8 +17,8 @@ class BaseBuilder(Generic[_M]):
     def _commit(self):
         self._session.commit()
 
-    def get_model_class(self):
-        return self._model.__class__
+    # def get_model_class(self):
+    #     return self._model.__class__
 
     def boot_scopes(self, scopes: dict = {}):
         self._scopes = scopes
@@ -36,7 +36,7 @@ class BaseBuilder(Generic[_M]):
         return self
 
 
-class WhereBase(BaseBuilder):
+class BaseWhereBuilder(BaseBuilder):
     _where_clauses = ()
 
     def where(self, *express: BinaryExpression):
@@ -45,7 +45,7 @@ class WhereBase(BaseBuilder):
         return self
 
 
-class ValueBase(BaseBuilder):
+class BaseValueBuilder(BaseBuilder):
     _values = None
 
     _returning = ()

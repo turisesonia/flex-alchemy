@@ -1,35 +1,64 @@
-from typing import Any
+import typing as t
 
 from sqlalchemy import Insert, insert
+from sqlalchemy.orm import Session
 from sqlalchemy.engine.result import Result
 
-from .base import ValueBase
+from .base import BaseBuilder
 
 
-class InsertBuilder(ValueBase):
-
+class InsertBuilder(BaseBuilder):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._insert_stmt: Insert = insert(self.get_model_class())
+        self._values = None
+        self._execution_options: dict = {}
+        self._returning: dict = {"cols": (), "params": {}}
 
-    def execution_options(self, **options):
-        self._insert_stmt = self._insert_stmt.execution_options(**options)
+    def values(self, *args, **kwargs):
+        if args:
+            self._values = args[0]
+        else:
+            self._values = kwargs
 
         return self
 
-    def insert(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
-        if not self._values:
-            raise ValueError("Values cannot be empty.")
+    def execution_options(self, **options):
+        self._execution_options.update(options)
 
-        self._insert_stmt = self._insert_stmt.values(self._values)
+        return self
+
+    def returning(self, *cols, **kwargs):
+        self._returning["cols"] += (*cols,)
+        self._returning["params"].update(kwargs)
+
+        return self
+
+    def _build(self):
+        if not self._values:
+            raise ValueError("values cannot be empty.")
+
+        stmt = insert(self._model).values(self._values)
 
         if self._returning:
-            self._insert_stmt = self._insert_stmt.returning(*self._returning)
+            stmt = stmt.returning(
+                *self._returning["cols"],
+                **self._returning["params"],
+            )
 
-        result = self._session.execute(self._insert_stmt, *args, **kwargs)
+        if self._execution_options:
+            stmt = stmt.execution_options(**self._execution_options)
 
-        if autocommit:
-            self._commit()
+        return stmt
+
+    def execute(
+        self, session: Session, commit: bool = True, *args, **kwargs
+    ) -> Result[t.Any]:
+        stmt = self._build()
+
+        result = session.execute(stmt, *args, **kwargs)
+
+        if commit:
+            session.commit()
 
         return result

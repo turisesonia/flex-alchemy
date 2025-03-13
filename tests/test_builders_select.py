@@ -1,6 +1,7 @@
 import math
 import pytest
 
+
 from sqlalchemy import inspect, insert
 from sqlalchemy.engine.row import Row
 from sqlalchemy.orm import scoped_session, joinedload
@@ -21,8 +22,8 @@ from .models import Model, User, Order
 
 
 @pytest.fixture
-def session() -> scoped_session:
-    return Model._session
+def session(mocker):
+    return mocker.MagicMock()
 
 
 @pytest.fixture

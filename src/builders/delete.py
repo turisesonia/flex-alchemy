@@ -5,10 +5,10 @@ from sqlalchemy.engine.result import Result
 from sqlalchemy.sql.dml import Delete
 
 
-from .base import WhereBase
+from .base import BaseWhereBuilder
 
 
-class DeleteBuilder(WhereBase):
+class DeleteBuilder(BaseWhereBuilder):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
