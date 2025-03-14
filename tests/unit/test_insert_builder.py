@@ -14,7 +14,7 @@ def session(mocker):
 
 @pytest.fixture
 def builder(session) -> InsertBuilder:
-    return InsertBuilder(session, User)
+    return InsertBuilder(User)
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def test_initial(builder: InsertBuilder):
     assert isinstance(builder._model(), User)
 
 
-def test_set_values(builder: InsertBuilder, values):
+def test_set_values(builder: InsertBuilder, values: dict):
     stmt = builder.values(**values)._build()
 
     assert isinstance(stmt, Insert)

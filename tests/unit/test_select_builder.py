@@ -25,7 +25,7 @@ def session(mocker):
 
 @pytest.fixture
 def builder(session) -> SelectBuilder:
-    return SelectBuilder(session, User)
+    return SelectBuilder(User)
 
 
 def test_select_all_fields(builder: SelectBuilder):
@@ -96,31 +96,26 @@ def test_select_limit_clause(faker, builder: SelectBuilder):
 
 
 def test_select_group_by_clause(session):
-    stmt = SelectBuilder(session, User).group_by(User.name)._build()
+    stmt = SelectBuilder(User).group_by(User.name)._build()
 
     for clause in stmt._group_by_clause:
         assert isinstance(clause, AnnotatedColumn)
 
-    stmt = SelectBuilder(session, User).group_by(User.name.label("user_name"))._build()
+    stmt = SelectBuilder(User).group_by(User.name.label("user_name"))._build()
 
     assert len(stmt._group_by_clause) == 1
 
     for clause in stmt._group_by_clause:
         assert isinstance(clause, Label)
 
-    stmt = SelectBuilder(session, User).group_by("name")._build()
+    stmt = SelectBuilder(User).group_by("name")._build()
 
     for clause in stmt._group_by_clause:
         assert isinstance(clause, _textual_label_reference)
 
 
 def test_select_having_clause(session: scoped_session):
-    stmt = (
-        SelectBuilder(session, User)
-        .group_by(User.name)
-        .having(User.enable is True)
-        ._build()
-    )
+    stmt = SelectBuilder(User).group_by(User.name).having(User.enable is True)._build()
 
     verifies = [AnnotatedColumn, BinaryExpression]
 
@@ -128,7 +123,7 @@ def test_select_having_clause(session: scoped_session):
         klass = verifies.pop(0)
         assert isinstance(clause, klass)
 
-    stmt = SelectBuilder(session, User).having(User.enable is True)._build()
+    stmt = SelectBuilder(User).having(User.enable is True)._build()
 
     assert len(stmt._group_by_clause) == 0
 

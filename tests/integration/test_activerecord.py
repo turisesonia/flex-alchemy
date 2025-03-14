@@ -1,62 +1,187 @@
 import pytest
-import typing as t
+
+import sqlalchemy as sa
+from sqlalchemy.orm import Session
 
 from example.models import User, Permission
 
 
 @pytest.fixture
-def user_data(faker) -> dict:
-    return {
-        "name": faker.name(),
-        "email": faker.email(),
-        "password": faker.password(),
-    }
-
-
-@pytest.fixture
-def seed_users(faker, session):
+def seed_users(faker, session: Session):
     values = [
         {
             "name": faker.name(),
             "email": faker.email(),
             "password": faker.password(),
+            "enable": num % 2 == 0,
         }
-        for _ in range(10)
+        for num in range(10)
     ]
 
-    User.insert(values, session=session)
+    stmt = sa.insert(User).values(values)
+
+    session.execute(stmt)
+    session.commit()
 
 
 @pytest.fixture
-def seed_permissions(session):
+def seed_permissions(session: Session):
     values = [
         {"name": "create_user"},
         {"name": "update_user"},
         {"name": "delete_user"},
     ]
 
-    Permission.insert(values, session=session)
+    stmt = sa.insert(Permission).values(values)
+
+    session.execute(stmt)
+    session.commit()
 
 
-def test_user_crud(session, user_data: dict):
-    user = User.create(user_data, session=session)
+def test_select(session: Session, seed_users):
+    row = User.select(User.id, User.name).execute(session=session).first()
+
+    assert isinstance(row, sa.engine.row.Row)
+    assert hasattr(row, "id")
+    assert hasattr(row, "name")
+
+    assert not hasattr(row, "email")
+    assert not hasattr(row, "password")
+    assert not hasattr(row, "enable")
+
+    assert isinstance(row.id, int)
+    assert isinstance(row.name, str)
+
+
+def test_first(session: Session, seed_users):
+    user = User.first(session=session)
 
     assert isinstance(user, User)
-    assert user.name == user_data["name"]
-    assert user.email == user_data["email"]
-    assert user.password == user_data["password"]
 
-    # TODO - Add test for where, update, delete
 
-    user_find = User.find(user.id)
+def test_find(session: Session, seed_users):
+    user = User.find(1, session=session)
 
-    assert isinstance(user_find, User)
-    assert user_find is user
+    assert isinstance(user, User)
 
-    user.name = "New Name"
-    user.save()
+    assert not User.find(100, session=session)
 
-    assert user.name == "New Name"
+
+def test_all(session: Session, seed_users):
+    users = User.all(session=session)
+
+    assert len(users) == 10
+
+    for user in users:
+        assert isinstance(user, User)
+
+
+def test_create(faker, session: Session):
+    data = {
+        "name": "John Doe",
+        "email": "john.doe@example.com",
+        "password": faker.password(),
+    }
+
+    user = User.create(data, session=session)
+
+    assert isinstance(user, User)
+    assert user.name == data["name"]
+    assert user.email == data["email"]
+    assert user.password == data["password"]
+
+
+def test_where(session: Session, seed_users):
+    users = User.where(User.enable.is_(True)).execute(session=session).scalars().all()
+
+    assert len(users) == 5
+
+    for user in users:
+        assert isinstance(user, User)
+        assert user.enable
+
+
+def test_order_by(session: Session, seed_users):
+    users = User.limit(5).execute(session=session).scalars().all()
+
+    assert len(users) == 5
+
+    for user in users:
+        assert isinstance(user, User)
+
+
+def test_limit(session: Session, seed_users):
+    users = User.offset(5).execute(session=session).scalars().all()
+
+    assert len(users) == 5
+    assert users[0].id == 6
+
+
+def test_insert(faker, session: Session):
+    assert len(User.all(session=session)) == 0
+
+    values = [
+        {
+            "name": faker.name(),
+            "email": faker.email(),
+            "password": faker.password(),
+            "enable": True,
+        }
+        for _ in range(5)
+    ]
+
+    result = User.insert(values).returning(User).execute(session=session)
+
+    # if set returning
+    users = result.scalars().all()
+
+    assert len(users) == 5
+
+    for user in users:
+        assert isinstance(user, User)
+
+
+def test_update(faker, session: Session, seed_users):
+    new_name = faker.name()
+
+    # update all users
+    User.update(name=new_name).execute(session=session)
+
+    users = User.all(session=session)
+
+    assert users
+
+    for user in users:
+        assert user.name == new_name
+
+
+def test_update_with_where(faker, session: Session, seed_users):
+    new_name = faker.name()
+
+    # update all users
+    User.update(name=new_name).where(User.enable.is_(True)).execute(session=session)
+
+    users = User.all(session=session)
+
+    assert users
+
+    for user in users:
+        if user.enable:
+            assert user.name == new_name
+        else:
+            assert user.name != new_name
+
+
+def test_update_by_save(faker, session: Session, seed_users):
+    user = User.first(session=session)
+
+    new_name = faker.name()
+    assert user.name != new_name
+
+    user.name = new_name
+    user.save(session)
+
+    assert User.find(user.id, session=session).name == new_name
 
 
 def test_user_attach_permission(session, seed_users, seed_permissions):
@@ -68,3 +193,12 @@ def test_user_attach_permission(session, seed_users, seed_permissions):
     user.save(session)
 
     assert len(user.permissions) == 3
+
+
+def test_user_with_filter(session, seed_users, seed_permissions):
+    users = User.where(User.enable.is_(True)).execute(session=session).scalars().all()
+
+    # print(user.permissions)
+
+    for user in users:
+        print(user)

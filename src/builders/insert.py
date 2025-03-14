@@ -34,7 +34,7 @@ class InsertBuilder(BaseBuilder):
 
         return self
 
-    def _build(self):
+    def _build(self) -> Insert:
         if not self._values:
             raise ValueError("values cannot be empty.")
 
@@ -52,8 +52,10 @@ class InsertBuilder(BaseBuilder):
         return stmt
 
     def execute(
-        self, session: Session, commit: bool = True, *args, **kwargs
+        self, session: t.Optional[Session] = None, commit: bool = True, *args, **kwargs
     ) -> Result[t.Any]:
+        session = session or self._session
+
         stmt = self._build()
 
         result = session.execute(stmt, *args, **kwargs)

@@ -1,6 +1,7 @@
 from typing import Any, Optional
 
 from sqlalchemy import Executable
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import BinaryExpression, UnaryExpression
 from sqlalchemy.engine.result import Result
 from sqlalchemy.orm.strategy_options import Load
@@ -62,6 +63,9 @@ class SelectBuilder(BaseWhereBuilder):
         else:
             stmt = Select(self._model)
 
+        if self._where_clauses:
+            stmt = stmt.where(*self._where_clauses)
+
         if self._offset is not None:
             stmt = stmt.offset(self._offset)
 
@@ -83,11 +87,17 @@ class SelectBuilder(BaseWhereBuilder):
         return stmt
 
     def execute(
-        self, stmt: Optional[Executable] = None, *args, **kwargs
+        self,
+        stmt: Optional[Executable] = None,
+        session: Optional[Session] = None,
+        *args,
+        **kwargs,
     ) -> Result[Any]:
+        session = session or self._session
+
         stmt = stmt or self._build()
 
-        return self._session.execute(stmt, *args, **kwargs)
+        return session.execute(stmt, *args, **kwargs)
 
     # def paginate(self, page: int = 1, per_page: int = 30) -> dict:
     #     self.offset((page - 1) * per_page)

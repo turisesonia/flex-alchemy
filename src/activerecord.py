@@ -5,9 +5,12 @@ from sqlalchemy.orm import Session
 from .builders import _M
 from .session import ScopedSessionHandler
 from .builders.select import SelectBuilder
-from .builders.delete import DeleteBuilder
 from .builders.insert import InsertBuilder
+from .builders.update import UpdateBuilder
+from .builders.delete import DeleteBuilder
 from .builders.complex import WhereBuilder, ValuesBuilder
+
+T = t.TypeVar("T", bound="ActiveRecord")
 
 
 class ReturningParams(t.TypedDict):
@@ -19,51 +22,25 @@ class ActiveRecord(ScopedSessionHandler):
     __primary_key__: str = "id"
 
     @classmethod
-    def select(cls, *entities):
+    def select(cls: t.Type[T], *entities) -> SelectBuilder:
         return cls._new_select().select(*entities)
 
     @classmethod
-    def first(cls, session: Session = None) -> t.Optional[_M]:
-        return cls._new_select(session).execute().scalars().first()
+    def first(cls: t.Type[T], session: Session = None) -> t.Optional[T]:
+        return cls._new_select().execute(session=session).scalars().first()
 
     @classmethod
-    def find(cls, pk: t.Any, session: Session = None):
+    def find(cls: t.Type[T], pk: t.Any, session: Session = None) -> t.Optional[T]:
         session = session or cls._session
 
         return session.get(cls, pk)
 
     @classmethod
-    def all(cls, session: Session = None) -> t.Iterable:
-        return cls._new_select(session).execute().scalars().all()
+    def all(cls: t.Type[T], session: Session = None) -> t.Sequence[T]:
+        return cls._new_select().execute(session=session).scalars().all()
 
     @classmethod
-    def where(cls, *express, session: Session = None):
-        return cls._new_select(session).where(*express)
-
-    @classmethod
-    def order_by(cls, *express, session: Session = None):
-        return cls._new_select(session).order_by(*express)
-
-    @classmethod
-    def offset(cls, offset: int = 0, session: Session = None):
-        if not isinstance(offset, int):
-            raise ValueError
-
-        return cls._new_select(session).offset(offset)
-
-    @classmethod
-    def limit(cls, limit: int = 0, session: Session = None):
-        if not isinstance(limit, int):
-            raise ValueError
-
-        return cls._new_select(session).limit(limit)
-
-    # @classmethod
-    # def paginate(cls, page: int = 1, per_page: int = 50, **kwargs):
-    #     return cls()._new_select().paginate(page, per_page, **kwargs)
-
-    @classmethod
-    def create(cls, attributes: dict, session: Session = None):
+    def create(cls: t.Type[T], attributes: dict, session: Session = None) -> T:
         instance = cls(**attributes)
 
         instance.save(session)
@@ -71,47 +48,54 @@ class ActiveRecord(ScopedSessionHandler):
         return instance
 
     @classmethod
-    def insert(
-        cls,
-        values,
-        session: Session = None,
-        returning: bool = False,
-        execution_options: dict = None,
-        commit: bool = True,
-        **kwargs,
-    ):
-        builder = InsertBuilder(session or cls._session, cls)
-
-        builder.values(values)
-
-        if execution_options is not None:
-            builder.execution_options(execution_options)
-
-        if returning:
-            # TODO add accept extra params feature
-            builder.returning(cls)
-
-        return builder.execute(session=session, commit=commit, **kwargs)
+    def where(cls: t.Type[T], *express) -> SelectBuilder:
+        return cls._new_select().where(*express)
 
     @classmethod
-    def values(cls, *args, **kwargs):
-        return cls()._new_values().values(*args, **kwargs)
+    def order_by(cls: t.Type[T], *express) -> SelectBuilder:
+        return cls._new_select().order_by(*express)
 
     @classmethod
-    def _new_select(cls, session: Session = None) -> SelectBuilder:
-        return SelectBuilder(session or cls._session, cls)
+    def offset(cls: t.Type[T], offset: int = 0) -> SelectBuilder:
+        if not isinstance(offset, int):
+            raise ValueError
+
+        return cls._new_select().offset(offset)
 
     @classmethod
-    def _new_delete(cls) -> DeleteBuilder:
-        return DeleteBuilder(cls._session, cls)
+    def limit(cls: t.Type[T], limit: int = 0) -> SelectBuilder:
+        if not isinstance(limit, int):
+            raise ValueError
+
+        return cls._new_select().limit(limit)
 
     @classmethod
-    def _new_where(cls) -> WhereBuilder:
-        return WhereBuilder(cls._session, cls)
+    def insert(cls: t.Type[T], values) -> InsertBuilder:
+        return cls._new_insert().values(values)
 
     @classmethod
-    def _new_values(cls) -> ValuesBuilder:
-        return ValuesBuilder(cls._session, cls)
+    def update(cls: t.Type[T], **values) -> UpdateBuilder:
+        return cls._new_update().values(**values)
+
+    @classmethod
+    def _new_select(cls: t.Type[T]) -> SelectBuilder:
+        return SelectBuilder(cls, session=cls._session)
+
+    @classmethod
+    def _new_insert(cls: t.Type[T]) -> InsertBuilder:
+        return InsertBuilder(cls, session=cls._session)
+
+    @classmethod
+    def _new_update(cls: t.Type[T]) -> UpdateBuilder:
+        return UpdateBuilder(cls, session=cls._session)
+
+    @classmethod
+    def _new_delete(cls: t.Type[T]) -> DeleteBuilder:
+        return DeleteBuilder(cls, session=cls._session)
+
+    # @classmethod
+    # def paginate(cls, page: int = 1, per_page: int = 50, **kwargs):
+    #     return cls()._new_select().paginate(page, per_page, **kwargs)
 
     def save(self, session: Session = None, refresh: bool = True):
         session = session or self._session

@@ -13,7 +13,7 @@ if t.TYPE_CHECKING:
 
 class User(Base, TimestampMixin):
     __tablename__ = "users"
-    __repr_attrs__ = ("id", "email", "name")
+    __repr_attrs__ = ("id", "email", "name", "enable")
 
     name: Mapped[str] = mapped_column(sa.String(50))
     email: Mapped[str] = mapped_column(sa.String(), unique=True)

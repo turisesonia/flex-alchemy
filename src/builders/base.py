@@ -1,35 +1,34 @@
-from typing import Optional, Generic, Callable
+import typing as t
 
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import BinaryExpression
 
-from . import _M
+
+_M = t.TypeVar("_M")
 
 
-class BaseBuilder(Generic[_M]):
-    def __init__(self, session: Session, model: _M):
-        self._session: Session = session
+class BaseBuilder(t.Generic[_M]):
+    def __init__(self, model: _M, session: t.Optional[Session] = None):
         self._model: _M = model
+        self._session: Session = session
 
         self._scopes = {}
         self._macros = {}
 
     def _commit(self):
-        self._session.commit()
-
-    # def get_model_class(self):
-    #     return self._model.__class__
+        if isinstance(self._session, Session):
+            self._session.commit()
 
     def boot_scopes(self, scopes: dict = {}):
         self._scopes = scopes
-        self._on_delete: Optional[Callable] = None
+        self._on_delete: t.Optional[t.Callable] = None
 
         for _, scope in self._scopes.items():
             scope.boot(self)
 
         return self
 
-    def macro(self, name: str, callable_: Callable):
+    def macro(self, name: str, callable_: t.Callable):
         if callable(callable_):
             self._macros[name] = callable_
 

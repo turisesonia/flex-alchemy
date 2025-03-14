@@ -1,36 +1,71 @@
-from typing import Any
+import typing as t
 
 from sqlalchemy import Update, update
+from sqlalchemy.orm import Session
 from sqlalchemy.engine.result import Result
-from sqlalchemy.sql.elements import BinaryExpression
 
-from .base import BaseValueBuilder
+from .base import BaseWhereBuilder
 
 
-class UpdateBuilder(BaseValueBuilder):
-
+class UpdateBuilder(BaseWhereBuilder):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._update_stmt: Update = update(self.get_model_class())
+        self._values: dict = {}
+        self._returning: tuple = ()
+        self._dialect_options: dict = {}
+        self._ordered_values: tuple[tuple[str]] = ()
 
-    def where(self, *express: BinaryExpression):
-        self._update_stmt = self._update_stmt.where(*express)
+    def values(self, **kwargs) -> "UpdateBuilder":
+        self._values.update(kwargs)
 
         return self
 
-    def update(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
-        if not self._values:
-            raise ValueError("Values cannot be empty.")
+    def returning(self, *cols) -> "UpdateBuilder":
+        self._returning += (*cols,)
 
-        self._update_stmt = self._update_stmt.values(self._values)
+        return self
+
+    def with_dialect_options(self, **opts) -> "UpdateBuilder":
+        self._dialect_options.update(opts)
+
+        return self
+
+    def ordered_values(self, *args) -> "UpdateBuilder":
+        self._ordered_values += (*args,)
+
+        return self
+
+    def _build(self) -> Update:
+        if not self._values:
+            raise ValueError("values cannot be empty.")
+
+        stmt = update(self._model).values(self._values)
+
+        if self._where_clauses:
+            stmt = stmt.where(*self._where_clauses)
 
         if self._returning:
-            self._update_stmt = self._update_stmt.returning(*self._returning)
+            stmt = stmt.returning(*self._returning)
 
-        result = self._session.execute(self._update_stmt, *args, **kwargs)
+        if self._dialect_options:
+            stmt = stmt.with_dialect_options(**self._dialect_options)
 
-        if autocommit:
+        if self._ordered_values:
+            stmt = stmt.ordered_values(*self._ordered_values)
+
+        return stmt
+
+    def execute(
+        self, session: t.Optional[Session] = None, commit: bool = True, *args, **kwargs
+    ) -> Result[t.Any]:
+        session = session or self._session
+
+        stmt = self._build()
+
+        result = session.execute(stmt, *args, **kwargs)
+
+        if commit:
             self._commit()
 
         return result
