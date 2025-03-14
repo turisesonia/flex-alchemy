@@ -184,6 +184,39 @@ def test_update_by_save(faker, session: Session, seed_users):
     assert User.find(user.id, session=session).name == new_name
 
 
+def test_delete(session: Session, seed_users):
+    user = User.first(session=session)
+
+    email = user.email
+
+    user.delete(session=session)
+
+    assert len(User.all(session=session)) == 9
+    assert (
+        not User.where(User.email == email).execute(session=session).scalars().first()
+    )
+
+
+def test_destroy(session: Session, seed_users):
+    assert len(User.all(session=session)) == 10
+
+    User.destroy().execute(session=session)
+
+    assert len(User.all(session=session)) == 0
+
+
+def test_destroy_with_where(session: Session, seed_users):
+    assert len(User.all(session=session)) == 10
+
+    User.destroy().where(User.enable.is_(False)).execute(session=session)
+
+    users = User.all(session=session)
+    assert len(users) == 5
+
+    for user in users:
+        assert user.enable
+
+
 def test_user_attach_permission(session, seed_users, seed_permissions):
     user = User.first(session)
 
@@ -193,12 +226,3 @@ def test_user_attach_permission(session, seed_users, seed_permissions):
     user.save(session)
 
     assert len(user.permissions) == 3
-
-
-def test_user_with_filter(session, seed_users, seed_permissions):
-    users = User.where(User.enable.is_(True)).execute(session=session).scalars().all()
-
-    # print(user.permissions)
-
-    for user in users:
-        print(user)

@@ -15,6 +15,9 @@ class BaseBuilder(t.Generic[_M]):
         self._scopes = {}
         self._macros = {}
 
+    def execute(self):
+        raise NotImplementedError
+
     def _commit(self):
         if isinstance(self._session, Session):
             self._session.commit()
@@ -40,24 +43,5 @@ class BaseWhereBuilder(BaseBuilder):
 
     def where(self, *express: BinaryExpression):
         self._where_clauses += (*express,)
-
-        return self
-
-
-class BaseValueBuilder(BaseBuilder):
-    _values = None
-
-    _returning = ()
-
-    def values(self, *args, **kwargs):
-        if args:
-            self._values = args[0]
-        else:
-            self._values = kwargs
-
-        return self
-
-    def returning(self, *entities):
-        self._returning += (*entities,)
 
         return self

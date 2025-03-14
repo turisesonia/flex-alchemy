@@ -1,8 +1,8 @@
-from typing import Any
+import typing as t
 
-from sqlalchemy import delete
+from sqlalchemy import delete, Delete
+from sqlalchemy.orm import Session
 from sqlalchemy.engine.result import Result
-from sqlalchemy.sql.dml import Delete
 
 
 from .base import BaseWhereBuilder
@@ -12,20 +12,24 @@ class DeleteBuilder(BaseWhereBuilder):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._delete_stmt: Delete = delete(self.get_model_class())
+    def _build(self) -> Delete:
+        stmt = delete(self._model)
 
-    def returning(self, *entities):
-        self._delete_stmt = self._delete_stmt.returning(*entities)
-
-        return self
-
-    def delete(self, autocommit: bool = True, *args, **kwargs) -> Result[Any]:
         if self._where_clauses:
-            self._delete_stmt = self._delete_stmt.where(*self._where_clauses)
+            stmt = stmt.where(*self._where_clauses)
 
-        result = self._session.execute(self._delete_stmt, *args, **kwargs)
+        return stmt
 
-        if autocommit:
+    def execute(
+        self, session: t.Optional[Session] = None, commit: bool = True, *args, **kwargs
+    ) -> Result[t.Any]:
+        session = session or self._session
+
+        stmt = self._build()
+
+        result = session.execute(stmt, *args, **kwargs)
+
+        if commit:
             self._commit()
 
         return result

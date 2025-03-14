@@ -8,7 +8,6 @@ from .builders.select import SelectBuilder
 from .builders.insert import InsertBuilder
 from .builders.update import UpdateBuilder
 from .builders.delete import DeleteBuilder
-from .builders.complex import WhereBuilder, ValuesBuilder
 
 T = t.TypeVar("T", bound="ActiveRecord")
 
@@ -71,35 +70,28 @@ class ActiveRecord(ScopedSessionHandler):
 
     @classmethod
     def insert(cls: t.Type[T], values) -> InsertBuilder:
-        return cls._new_insert().values(values)
+        return InsertBuilder(cls, session=cls._session).values(values)
 
     @classmethod
     def update(cls: t.Type[T], **values) -> UpdateBuilder:
-        return cls._new_update().values(**values)
+        return UpdateBuilder(cls, session=cls._session).values(**values)
+
+    @classmethod
+    def destroy(cls: t.Type[T]) -> DeleteBuilder:
+        return DeleteBuilder(cls, session=cls._session)
 
     @classmethod
     def _new_select(cls: t.Type[T]) -> SelectBuilder:
         return SelectBuilder(cls, session=cls._session)
 
-    @classmethod
-    def _new_insert(cls: t.Type[T]) -> InsertBuilder:
-        return InsertBuilder(cls, session=cls._session)
-
-    @classmethod
-    def _new_update(cls: t.Type[T]) -> UpdateBuilder:
-        return UpdateBuilder(cls, session=cls._session)
-
-    @classmethod
-    def _new_delete(cls: t.Type[T]) -> DeleteBuilder:
-        return DeleteBuilder(cls, session=cls._session)
-
     # @classmethod
     # def paginate(cls, page: int = 1, per_page: int = 50, **kwargs):
     #     return cls()._new_select().paginate(page, per_page, **kwargs)
 
-    def save(self, session: Session = None, refresh: bool = True):
-        session = session or self._session
+    def save(self, session: t.Optional[Session] = None, refresh: bool = True):
         try:
+            session = session or self._session
+
             session.add(self)
             session.commit()
 
@@ -110,14 +102,14 @@ class ActiveRecord(ScopedSessionHandler):
             session.rollback()
             raise e
 
-    def delete(self, autocommit: bool = True, *args, **kwargs):
+    def delete(self, session: t.Optional[Session] = None, commit: bool = True):
         try:
-            model_primary_key = getattr(self.__class__, self.__primary_key__)
-            model_value = getattr(self, self.__primary_key__)
+            session = session or self._session
 
-            self._new_delete().where(model_primary_key == model_value).delete(
-                autocommit=autocommit, *args, **kwargs
-            )
+            session.delete(self)
+
+            if commit:
+                session.commit()
 
         except Exception as e:
             self._session.rollback()
