@@ -13,7 +13,7 @@ from sqlalchemy.sql.elements import (
 from sqlalchemy.sql.selectable import _OffsetLimitParam
 from sqlalchemy.sql.annotation import AnnotatedColumn
 
-from src.builders.select import SelectBuilder
+from fluent_alchemy.builders.select import SelectBuilder
 
 from examples.models import User
 

@@ -2,7 +2,7 @@ import typing as t
 
 import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from src import ActiveRecord
+from fluent_alchemy import ActiveRecord
 
 
 class Base(DeclarativeBase, ActiveRecord):

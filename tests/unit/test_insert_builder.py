@@ -3,7 +3,7 @@ import pytest
 from sqlalchemy.sql.dml import Insert
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
-from src.builders.insert import InsertBuilder
+from fluent_alchemy.builders.insert import InsertBuilder
 from examples.models import User
 
 

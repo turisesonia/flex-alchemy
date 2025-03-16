@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Delete
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 
-from src.builders.delete import DeleteBuilder
+from fluent_alchemy.builders.delete import DeleteBuilder
 
 from examples.models import User
 
