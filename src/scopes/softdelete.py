@@ -2,14 +2,14 @@ from datetime import datetime
 
 from sqlalchemy import update
 from . import Scope
-from ..builders.query import QueryBuilder
+from ..builders.select import SelectBuilder
 
 
 class SoftDeleteScope(Scope):
     def __init__(self):
-        self._builder: QueryBuilder = None
+        self._builder: SelectBuilder = None
 
-    def boot(self, builder: QueryBuilder):
+    def boot(self, builder: SelectBuilder):
         self._builder = builder
 
         self._builder.macro("_delete_stmt", self._delete_stmt)
