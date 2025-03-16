@@ -3,7 +3,7 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base
+from ._base import Base
 
 
 if t.TYPE_CHECKING:

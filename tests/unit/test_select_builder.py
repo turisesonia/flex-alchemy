@@ -15,7 +15,7 @@ from sqlalchemy.sql.annotation import AnnotatedColumn
 
 from src.builders.select import SelectBuilder
 
-from example.models import User
+from examples.models import User
 
 
 @pytest.fixture
@@ -28,7 +28,11 @@ def builder(session) -> SelectBuilder:
     return SelectBuilder(User)
 
 
-def test_select_all_fields(builder: SelectBuilder):
+def test_initial(builder: SelectBuilder):
+    assert builder._model is User
+
+
+def test_select(builder: SelectBuilder):
     columns = {col.name for col in inspect(User).columns}
 
     stmt = builder.select(User)._build()
@@ -37,7 +41,7 @@ def test_select_all_fields(builder: SelectBuilder):
     assert set(stmt.selected_columns.keys()) == columns
 
 
-def test_select_specific_fields(builder: SelectBuilder):
+def test_select_with_fields(builder: SelectBuilder):
     columns = {"id", "name", "email"}
 
     stmt = builder.select(User.id, User.name, User.email)._build()
@@ -50,23 +54,18 @@ def test_select_where_clauses(faker, builder: SelectBuilder):
     name = faker.name()
     email = faker.email()
 
-    validate = [
-        {"field": "name", "value": name},
-        {"field": "email", "value": email},
-    ]
+    validates = {("name", name), ("email", email)}
 
-    builder.where(User.name == name).where(User.email == email)
+    stmt = builder.where(User.name == name).where(User.email == email)._build()
+    assert len(stmt._where_criteria) == 2
 
-    assert len(builder._where_clauses) == len(validate)
+    criterias = [cri for cri in stmt._where_criteria]
 
-    for idx, clause in enumerate(builder._where_clauses):
-        assert isinstance(clause, BinaryExpression)
+    assert all(isinstance(clause, BinaryExpression) for clause in criterias)
 
-        field = clause.left
-        param = clause.right
+    values = {(cri.left.name, cri.right.value) for cri in criterias}
 
-        assert field.name == validate[idx]["field"]
-        assert param.value == validate[idx]["value"]
+    assert values == validates
 
 
 def test_select_offset_clause(faker, builder: SelectBuilder):
@@ -142,6 +141,12 @@ def test_select_options_clause(builder: SelectBuilder):
     assert len(stmt._with_options) == 1
     for opt in stmt._with_options:
         assert isinstance(opt, Load)
+
+
+def test_select_call_execute(faker, session, builder: SelectBuilder):
+    builder.where(User.email == faker.email()).execute(session)
+
+    session.execute.assert_called_once()
 
 
 # def test_select_joined_load_unique(faker, session: scoped_session):

@@ -4,7 +4,7 @@ from sqlalchemy.sql.dml import Insert
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
 from src.builders.insert import InsertBuilder
-from example.models import User
+from examples.models import User
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def values(faker) -> dict:
 
 
 def test_initial(builder: InsertBuilder):
-    assert isinstance(builder._model(), User)
+    assert builder._model is User
 
 
 def test_set_values(builder: InsertBuilder, values: dict):
@@ -70,44 +70,15 @@ def test_set_execution_options(builder: InsertBuilder, values):
         assert value
 
 
-# def test_insert_multiple(faker, session: Session):
-#     count = faker.pyint(min_value=1, max_value=10)
-#     values = [
-#         {
-#             "name": faker.name(),
-#             "email": faker.email(),
-#             "password": faker.password(),
-#         }
-#         for _ in range(count)
-#     ]
+def test_call_execute(session, builder: InsertBuilder, values: dict):
+    builder.values(**values).execute(session=session)
 
-#     builder = InsertBuilder(session, User())
-#     builder.values(values).insert()
-
-#     with session() as db:
-#         users = db.scalars(select(User)).all()
-
-#         assert len(users) == count
-
-#         for idx, user in enumerate(users):
-#             assert user.name == values[idx]["name"]
-#             assert user.email == values[idx]["email"]
-#             assert user.password == values[idx]["password"]
+    session.execute.assert_called_once()
+    session.commit.assert_called_once()
 
 
-# def test_insert_single(faker, session: Session):
-#     values = {
-#         "name": faker.name(),
-#         "email": faker.email(),
-#         "password": faker.password(),
-#     }
+def test_call_execute_not_commit(session, builder: InsertBuilder, values: dict):
+    builder.values(**values).execute(session=session, commit=False)
 
-#     builder = InsertBuilder(session, User())
-#     builder.values(values).insert()
-
-#     with session() as db:
-#         user = db.scalars(select(User)).first()
-
-#         assert user.name == values["name"]
-#         assert user.email == values["email"]
-#         assert user.password == values["password"]
+    session.execute.assert_called_once()
+    session.commit.assert_not_called()

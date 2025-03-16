@@ -3,7 +3,7 @@ import pytest
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from example.models import User, Permission
+from examples.models import User, Permission
 
 
 @pytest.fixture
@@ -217,7 +217,7 @@ def test_destroy_with_where(session: Session, seed_users):
         assert user.enable
 
 
-def test_user_attach_permission(session, seed_users, seed_permissions):
+def test_user_attach_permission(session: Session, seed_users, seed_permissions):
     user = User.first(session)
 
     assert len(user.permissions) == 0
@@ -226,3 +226,27 @@ def test_user_attach_permission(session, seed_users, seed_permissions):
     user.save(session)
 
     assert len(user.permissions) == 3
+
+
+def test_execute(faker, session: Session):
+    name = faker.name()
+    email = faker.email()
+    password = faker.password()
+
+    insert_stmt = sa.insert(User).values(
+        name=name,
+        email=email,
+        password=password,
+    )
+
+    User.execute(insert_stmt, session=session)
+
+    session.commit()
+
+    user = User.where(User.email == email).execute(session=session).scalars().first()
+
+    assert isinstance(user, User)
+
+    assert user.name == name
+    assert user.email == email
+    assert user.password == password

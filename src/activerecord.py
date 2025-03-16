@@ -1,6 +1,8 @@
 import typing as t
 
+from sqlalchemy import Insert, Select, Update, Delete
 from sqlalchemy.orm import Session
+from sqlalchemy.engine.result import Result
 
 from .builders import _M
 from .session import ScopedSessionHandler
@@ -83,6 +85,18 @@ class ActiveRecord(ScopedSessionHandler):
     @classmethod
     def _new_select(cls: t.Type[T]) -> SelectBuilder:
         return SelectBuilder(cls, session=cls._session)
+
+    @classmethod
+    def execute(
+        cls: t.Type[T],
+        stmt: t.Union[Select, Insert, Update, Delete],
+        session: t.Optional[Session] = None,
+        *args,
+        **kwargs,
+    ) -> Result:
+        session = session or cls._session
+
+        return session.execute(stmt, *args, **kwargs)
 
     # @classmethod
     # def paginate(cls, page: int = 1, per_page: int = 50, **kwargs):

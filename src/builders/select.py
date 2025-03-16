@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional
 
 from sqlalchemy import Executable
 from sqlalchemy.orm import Session
@@ -87,15 +87,11 @@ class SelectBuilder(BaseWhereBuilder):
         return stmt
 
     def execute(
-        self,
-        stmt: Optional[Executable] = None,
-        session: Optional[Session] = None,
-        *args,
-        **kwargs,
-    ) -> Result[Any]:
+        self, session: Optional[Session] = None, *args, **kwargs
+    ) -> Result:
         session = session or self._session
 
-        stmt = stmt or self._build()
+        stmt = self._build()
 
         return session.execute(stmt, *args, **kwargs)
 

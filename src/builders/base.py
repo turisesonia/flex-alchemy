@@ -18,10 +18,6 @@ class BaseBuilder(t.Generic[_M]):
     def execute(self):
         raise NotImplementedError
 
-    def _commit(self):
-        if isinstance(self._session, Session):
-            self._session.commit()
-
     def boot_scopes(self, scopes: dict = {}):
         self._scopes = scopes
         self._on_delete: t.Optional[t.Callable] = None

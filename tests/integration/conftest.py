@@ -7,7 +7,7 @@ from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.engine import URL
 
-from example.models.base import Base
+from examples.models._base import Base
 
 
 def pytest_addoption(parser):

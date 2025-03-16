@@ -30,6 +30,6 @@ class DeleteBuilder(BaseWhereBuilder):
         result = session.execute(stmt, *args, **kwargs)
 
         if commit:
-            self._commit()
+            session.commit()
 
         return result

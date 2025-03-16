@@ -1,14 +1,12 @@
 import pytest
 
-from sqlalchemy import insert, select
-from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Update
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
 from src.builders.update import UpdateBuilder
 
-from example.models import User
+from examples.models import User
 
 
 @pytest.fixture
@@ -31,7 +29,7 @@ def values(faker) -> dict:
 
 
 def test_initial(builder: UpdateBuilder):
-    assert isinstance(builder._model(), User)
+    assert builder._model is User
 
 
 def test_build_stmt(builder: UpdateBuilder, values: dict):
@@ -102,3 +100,23 @@ def test_build_stmt_with_returning_all(faker, builder: UpdateBuilder):
 
     for col in stmt._returning:
         assert isinstance(col, AnnotatedTable)
+
+
+def test_call_execute(faker, session, builder: UpdateBuilder):
+    name = faker.name()
+    email = faker.email()
+
+    builder.values(name=name).where(User.email == email).execute(session)
+
+    session.execute.assert_called_once()
+    session.commit.assert_called_once()
+
+
+def test_call_execute_not_commit(faker, session, builder: UpdateBuilder):
+    name = faker.name()
+    email = faker.email()
+
+    builder.values(name=name).where(User.email == email).execute(session, commit=False)
+
+    session.execute.assert_called_once()
+    session.commit.assert_not_called()

@@ -2,8 +2,8 @@ import typing as t
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base
-from .mixin import TimestampMixin
+from ._base import Base
+from ._mixin import TimestampMixin
 from .user_permission import UserPermission
 
 

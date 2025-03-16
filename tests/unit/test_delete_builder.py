@@ -1,16 +1,18 @@
 import pytest
 
+from unittest.mock import MagicMock
+
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Delete
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 
 from src.builders.delete import DeleteBuilder
 
-from example.models import User
+from examples.models import User
 
 
 @pytest.fixture
-def session(mocker):
+def session(mocker) -> MagicMock:
     return mocker.MagicMock(spec=Session)
 
 
@@ -63,3 +65,10 @@ def test_call_execute(faker, session, builder: DeleteBuilder):
     builder.where(User.email == faker.email()).execute(session=session)
 
     session.execute.assert_called_once()
+    session.commit.assert_called_once()
+
+
+def test_call_execute_with_not_commit(faker, session, builder: DeleteBuilder):
+    builder.where(User.email == faker.email()).execute(session=session, commit=False)
+    session.execute.assert_called_once()
+    session.commit.assert_not_called()
