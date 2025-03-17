@@ -13,8 +13,8 @@ from sqlalchemy.sql.elements import (
 from sqlalchemy.sql.selectable import _OffsetLimitParam
 from sqlalchemy.sql.annotation import AnnotatedColumn
 
-from fluent_alchemy.builders.select import SelectBuilder
-from fluent_alchemy.exceptions import SessionNotProvidedError
+from flex_alchemy.builders.select import SelectBuilder
+from flex_alchemy.exceptions import SessionNotProvidedError
 
 from examples.models import User
 

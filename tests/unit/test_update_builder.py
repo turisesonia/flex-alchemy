@@ -5,10 +5,10 @@ from sqlalchemy.sql.dml import Update
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
-from fluent_alchemy.builders.update import UpdateBuilder
+from flex_alchemy.builders.update import UpdateBuilder
 
 from examples.models import User
-from fluent_alchemy.exceptions import SessionNotProvidedError
+from flex_alchemy.exceptions import SessionNotProvidedError
 
 
 @pytest.fixture

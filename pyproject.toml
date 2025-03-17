@@ -1,5 +1,5 @@
 [project]
-name = "fluent-alchemy"
+name = "flex-alchemy"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Sam Yao", email = "turisesonia@gmail.com" }]
@@ -20,3 +20,6 @@ pytest-mock = "^3.14.0"
 pytest-cov = "^6.0.0"
 psycopg = { extras = ["binary", "pool"], version = "^3.2.6" }
 python-dotenv = "^1.0.1"
+
+[tool.poetry]
+packages = [{ include = "flex_alchemy", from = "src" }]

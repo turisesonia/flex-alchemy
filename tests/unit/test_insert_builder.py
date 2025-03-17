@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Insert
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
-from fluent_alchemy.builders.insert import InsertBuilder
+from flex_alchemy.builders.insert import InsertBuilder
 from examples.models import User
 
-from fluent_alchemy.exceptions import SessionNotProvidedError
+from flex_alchemy.exceptions import SessionNotProvidedError
 
 
 @pytest.fixture

@@ -6,11 +6,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Delete
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 
-from fluent_alchemy.builders.delete import DeleteBuilder
+from flex_alchemy.builders.delete import DeleteBuilder
 
 from examples.models import User
 
-from fluent_alchemy.exceptions import SessionNotProvidedError
+from flex_alchemy.exceptions import SessionNotProvidedError
 
 
 @pytest.fixture
