@@ -1,7 +1,7 @@
 [project]
 name = "flex-alchemy"
 version = "0.1.0"
-description = ""
+description = "SQLAlchemy with Active Record - a fluent query builder and ActiveRecord implementation for SQLAlchemy"
 authors = [{ name = "Sam Yao", email = "turisesonia@gmail.com" }]
 license = { text = "MIT" }
 readme = "README.md"
