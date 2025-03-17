@@ -19,7 +19,7 @@ class BaseBuilder(t.Generic[_M]):
     def get_session(self, session: t.Optional[Session] = None) -> Session:
         session = session or self._session
 
-        if not session or not isinstance(session, Session):
+        if not session:
             raise SessionNotProvidedError
 
         return session

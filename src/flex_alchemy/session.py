@@ -24,7 +24,7 @@ class ScopedSessionHandler:
     def get_session(cls, session: Optional[Session] = None) -> Session:
         session = session or cls._session
 
-        if not session or not isinstance(session, Session):
+        if not session:
             raise SessionNotProvidedError
 
         return session

@@ -1,45 +1,10 @@
-import pytest
-
 import sqlalchemy as sa
-from sqlalchemy.orm import Session
 
 from examples.models import User, Permission
 
 
-@pytest.fixture
-def seed_users(faker, session: Session):
-    values = [
-        {
-            "name": faker.name(),
-            "email": faker.email(),
-            "password": faker.password(),
-            "enable": num % 2 == 0,
-        }
-        for num in range(10)
-    ]
-
-    stmt = sa.insert(User).values(values)
-
-    session.execute(stmt)
-    session.commit()
-
-
-@pytest.fixture
-def seed_permissions(session: Session):
-    values = [
-        {"name": "create_user"},
-        {"name": "update_user"},
-        {"name": "delete_user"},
-    ]
-
-    stmt = sa.insert(Permission).values(values)
-
-    session.execute(stmt)
-    session.commit()
-
-
-def test_select(session: Session, seed_users):
-    row = User.select(User.id, User.name).execute(session=session).first()
+def test_select(seed_users):
+    row = User.select(User.id, User.name).execute().first()
 
     assert isinstance(row, sa.engine.row.Row)
     assert hasattr(row, "id")
@@ -53,22 +18,22 @@ def test_select(session: Session, seed_users):
     assert isinstance(row.name, str)
 
 
-def test_first(session: Session, seed_users):
-    user = User.first(session=session)
+def test_first(seed_users):
+    user = User.first()
 
     assert isinstance(user, User)
 
 
-def test_find(session: Session, seed_users):
-    user = User.find(1, session=session)
+def test_find(seed_users):
+    user = User.find(1)
 
     assert isinstance(user, User)
 
-    assert not User.find(100, session=session)
+    assert not User.find(100)
 
 
-def test_all(session: Session, seed_users):
-    users = User.all(session=session)
+def test_all(seed_users):
+    users = User.all()
 
     assert len(users) == 10
 
@@ -76,14 +41,14 @@ def test_all(session: Session, seed_users):
         assert isinstance(user, User)
 
 
-def test_create(faker, session: Session):
+def test_create(faker):
     data = {
         "name": "John Doe",
         "email": "john.doe@example.com",
         "password": faker.password(),
     }
 
-    user = User.create(data, session=session)
+    user = User.create(data)
 
     assert isinstance(user, User)
     assert user.name == data["name"]
@@ -91,8 +56,8 @@ def test_create(faker, session: Session):
     assert user.password == data["password"]
 
 
-def test_where(session: Session, seed_users):
-    users = User.where(User.enable.is_(True)).execute(session=session).scalars().all()
+def test_where(seed_users):
+    users = User.where(User.enable.is_(True)).execute().scalars().all()
 
     assert len(users) == 5
 
@@ -101,8 +66,8 @@ def test_where(session: Session, seed_users):
         assert user.enable
 
 
-def test_order_by(session: Session, seed_users):
-    users = User.limit(5).execute(session=session).scalars().all()
+def test_order_by(seed_users):
+    users = User.limit(5).execute().scalars().all()
 
     assert len(users) == 5
 
@@ -110,15 +75,15 @@ def test_order_by(session: Session, seed_users):
         assert isinstance(user, User)
 
 
-def test_limit(session: Session, seed_users):
-    users = User.offset(5).execute(session=session).scalars().all()
+def test_limit(seed_users):
+    users = User.offset(5).execute().scalars().all()
 
     assert len(users) == 5
     assert users[0].id == 6
 
 
-def test_insert(faker, session: Session):
-    assert len(User.all(session=session)) == 0
+def test_insert(faker):
+    assert len(User.all()) == 0
 
     values = [
         {
@@ -130,7 +95,7 @@ def test_insert(faker, session: Session):
         for _ in range(5)
     ]
 
-    result = User.insert(values).returning(User).execute(session=session)
+    result = User.insert(values).returning(User).execute()
 
     # if set returning
     users = result.scalars().all()
@@ -141,13 +106,13 @@ def test_insert(faker, session: Session):
         assert isinstance(user, User)
 
 
-def test_update(faker, session: Session, seed_users):
+def test_update(faker, seed_users):
     new_name = faker.name()
 
     # update all users
-    User.update(name=new_name).execute(session=session)
+    User.update(name=new_name).execute()
 
-    users = User.all(session=session)
+    users = User.all()
 
     assert users
 
@@ -155,13 +120,13 @@ def test_update(faker, session: Session, seed_users):
         assert user.name == new_name
 
 
-def test_update_with_where(faker, session: Session, seed_users):
+def test_update_with_where(faker, seed_users):
     new_name = faker.name()
 
     # update all users
-    User.update(name=new_name).where(User.enable.is_(True)).execute(session=session)
+    User.update(name=new_name).where(User.enable.is_(True)).execute()
 
-    users = User.all(session=session)
+    users = User.all()
 
     assert users
 
@@ -172,53 +137,56 @@ def test_update_with_where(faker, session: Session, seed_users):
             assert user.name != new_name
 
 
-def test_update_by_save(faker, session: Session, seed_users):
-    user = User.first(session=session)
+def test_update_by_save(faker, seed_users):
+    user = User.first()
 
     new_name = faker.name()
     assert user.name != new_name
 
     user.name = new_name
-    user.save(session)
+    user.save()
 
-    assert User.find(user.id, session=session).name == new_name
-
-
-def test_delete(session: Session, seed_users):
-    user = User.first(session=session)
-
-    email = user.email
-
-    user.delete(session=session)
-
-    assert len(User.all(session=session)) == 9
     assert (
-        not User.where(User.email == email).execute(session=session).scalars().first()
+        User.find(
+            user.id,
+        ).name
+        == new_name
     )
 
 
-def test_destroy(session: Session, seed_users):
-    assert len(User.all(session=session)) == 10
+def test_delete(seed_users):
+    user = User.first()
 
-    User.destroy().execute(session=session)
+    email = user.email
 
-    assert len(User.all(session=session)) == 0
+    user.delete()
+
+    assert len(User.all()) == 9
+    assert not User.where(User.email == email).execute().scalars().first()
 
 
-def test_destroy_with_where(session: Session, seed_users):
-    assert len(User.all(session=session)) == 10
+def test_destroy(seed_users):
+    assert len(User.all()) == 10
 
-    User.destroy().where(User.enable.is_(False)).execute(session=session)
+    User.destroy().execute()
 
-    users = User.all(session=session)
+    assert len(User.all()) == 0
+
+
+def test_destroy_with_where(seed_users):
+    assert len(User.all()) == 10
+
+    User.destroy().where(User.enable.is_(False)).execute()
+
+    users = User.all()
     assert len(users) == 5
 
     for user in users:
         assert user.enable
 
 
-def test_user_attach_permission(faker, session: Session, seed_permissions):
-    permissions = Permission.all(session=session)
+def test_user_attach_permission(faker, seed_permissions):
+    permissions = Permission.all()
 
     user = User(
         name=faker.name(),
@@ -227,14 +195,14 @@ def test_user_attach_permission(faker, session: Session, seed_permissions):
         permissions=permissions,
     )
 
-    user.save(session)
+    user.save()
 
     assert len(user.permissions) == 3
 
-    User.first(session=session)
+    User.first()
 
 
-def test_execute(faker, session: Session):
+def test_execute(faker):
     name = faker.name()
     email = faker.email()
     password = faker.password()
@@ -245,11 +213,10 @@ def test_execute(faker, session: Session):
         password=password,
     )
 
-    User.execute(insert_stmt, session=session)
+    User.execute(insert_stmt)
+    User._session.commit()
 
-    session.commit()
-
-    user = User.where(User.email == email).execute(session=session).scalars().first()
+    user = User.where(User.email == email).execute().scalars().first()
 
     assert isinstance(user, User)
 

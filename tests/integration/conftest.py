@@ -3,7 +3,7 @@ import pytest
 
 from dotenv import load_dotenv
 
-from sqlalchemy import create_engine, Engine
+from sqlalchemy import insert, create_engine, Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.engine import URL
 
@@ -55,29 +55,67 @@ def engine(sqlecho: bool) -> Engine:
 
 @pytest.fixture(scope="session")
 def session(engine: Engine) -> Session:
-    return sessionmaker(engine, future=True)()
+    return sessionmaker(engine, future=True)
+
+
+@pytest.fixture
+def seed_users(faker, session: Session):
+    from examples.models import User
+
+    values = [
+        {
+            "name": faker.name(),
+            "email": faker.email(),
+            "password": faker.password(),
+            "enable": num % 2 == 0,
+        }
+        for num in range(10)
+    ]
+
+    with session() as db:
+        stmt = insert(User).values(values)
+
+        db.execute(stmt)
+        db.commit()
+
+
+@pytest.fixture
+def seed_permissions(session: Session):
+    from examples.models import Permission
+
+    values = [
+        {"name": "create_user"},
+        {"name": "update_user"},
+        {"name": "delete_user"},
+    ]
+
+    stmt = insert(Permission).values(values)
+
+    with session() as db:
+        db.execute(stmt)
+        db.commit()
 
 
 @pytest.fixture(autouse=True)
-def bind_session(engine: Engine, session: Session):
+def bind_scoped_session(engine: Engine):
     import sqlalchemy as sa
 
     Base.make_session(engine)
 
-    with session as db:
-        yield
+    yield
 
-        if engine.dialect.name == "postgresql":
-            db.execute(sa.text("SET CONSTRAINTS ALL DEFERRED"))
+    session = Base._session
 
-        for table in reversed(Base.metadata.sorted_tables):
-            query = sa.text(f'TRUNCATE TABLE "{table.name}" RESTART IDENTITY CASCADE')
+    if engine.dialect.name == "postgresql":
+        session.execute(sa.text("SET CONSTRAINTS ALL DEFERRED"))
 
-            db.execute(query)
+    for table in reversed(Base.metadata.sorted_tables):
+        query = sa.text(f'TRUNCATE TABLE "{table.name}" RESTART IDENTITY CASCADE')
+        session.execute(query)
 
-        if engine.dialect.name == "postgresql":
-            db.execute(sa.text("SET CONSTRAINTS ALL IMMEDIATE"))
+    if engine.dialect.name == "postgresql":
+        session.execute(sa.text("SET CONSTRAINTS ALL IMMEDIATE"))
 
-        db.commit()
+    session.commit()
 
     Base.teardown_session()
