@@ -2,7 +2,7 @@ import pytest
 
 from sqlalchemy import inspect
 from sqlalchemy.engine.row import Row
-from sqlalchemy.orm import scoped_session, joinedload
+from sqlalchemy.orm import Session, scoped_session, joinedload
 from sqlalchemy.orm.strategy_options import Load
 from sqlalchemy.sql.elements import (
     BinaryExpression,
@@ -14,18 +14,19 @@ from sqlalchemy.sql.selectable import _OffsetLimitParam
 from sqlalchemy.sql.annotation import AnnotatedColumn
 
 from fluent_alchemy.builders.select import SelectBuilder
+from fluent_alchemy.exceptions import SessionNotProvidedError
 
 from examples.models import User
 
 
 @pytest.fixture
 def session(mocker):
-    return mocker.MagicMock()
+    return mocker.MagicMock(spec=Session)
 
 
 @pytest.fixture
 def builder(session) -> SelectBuilder:
-    return SelectBuilder(User)
+    return SelectBuilder(User, session=session)
 
 
 def test_initial(builder: SelectBuilder):
@@ -147,6 +148,13 @@ def test_select_call_execute(faker, session, builder: SelectBuilder):
     builder.where(User.email == faker.email()).execute(session)
 
     session.execute.assert_called_once()
+
+
+def test_call_execute_without_session(faker):
+    builder = SelectBuilder(User)
+
+    with pytest.raises(SessionNotProvidedError):
+        builder.where(User.email == faker.email()).execute()
 
 
 # def test_select_joined_load_unique(faker, session: scoped_session):

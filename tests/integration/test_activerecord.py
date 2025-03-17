@@ -217,15 +217,21 @@ def test_destroy_with_where(session: Session, seed_users):
         assert user.enable
 
 
-def test_user_attach_permission(session: Session, seed_users, seed_permissions):
-    user = User.first(session)
+def test_user_attach_permission(faker, session: Session, seed_permissions):
+    permissions = Permission.all(session=session)
 
-    assert len(user.permissions) == 0
+    user = User(
+        name=faker.name(),
+        email=faker.email(),
+        password=faker.password(),
+        permissions=permissions,
+    )
 
-    user.permissions = Permission.all(session)
     user.save(session)
 
     assert len(user.permissions) == 3
+
+    User.first(session=session)
 
 
 def test_execute(faker, session: Session):

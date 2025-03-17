@@ -1,20 +1,23 @@
 import pytest
 
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Insert
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 
 from fluent_alchemy.builders.insert import InsertBuilder
 from examples.models import User
 
+from fluent_alchemy.exceptions import SessionNotProvidedError
+
 
 @pytest.fixture
 def session(mocker):
-    return mocker.MagicMock()
+    return mocker.MagicMock(spec=Session)
 
 
 @pytest.fixture
 def builder(session) -> InsertBuilder:
-    return InsertBuilder(User)
+    return InsertBuilder(User, session=session)
 
 
 @pytest.fixture
@@ -82,3 +85,10 @@ def test_call_execute_not_commit(session, builder: InsertBuilder, values: dict):
 
     session.execute.assert_called_once()
     session.commit.assert_not_called()
+
+
+def test_call_execute_without_session(faker, values: dict):
+    builder = InsertBuilder(User)
+
+    with pytest.raises(SessionNotProvidedError):
+        builder.values(**values).execute()

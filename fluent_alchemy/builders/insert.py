@@ -54,7 +54,7 @@ class InsertBuilder(BaseBuilder):
     def execute(
         self, session: t.Optional[Session] = None, commit: bool = True, *args, **kwargs
     ) -> Result[t.Any]:
-        session = session or self._session
+        session = self.get_session(session)
 
         stmt = self._build()
 

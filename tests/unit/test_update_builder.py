@@ -1,5 +1,6 @@
 import pytest
 
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.dml import Update
 from sqlalchemy.sql.elements import BinaryExpression, BooleanClauseList
 from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
@@ -7,16 +8,17 @@ from sqlalchemy.sql.annotation import AnnotatedTable, AnnotatedColumn
 from fluent_alchemy.builders.update import UpdateBuilder
 
 from examples.models import User
+from fluent_alchemy.exceptions import SessionNotProvidedError
 
 
 @pytest.fixture
 def session(mocker):
-    return mocker.MagicMock()
+    return mocker.MagicMock(spec=Session)
 
 
 @pytest.fixture
 def builder() -> UpdateBuilder:
-    return UpdateBuilder(User)
+    return UpdateBuilder(User, session=session)
 
 
 @pytest.fixture
@@ -120,3 +122,10 @@ def test_call_execute_not_commit(faker, session, builder: UpdateBuilder):
 
     session.execute.assert_called_once()
     session.commit.assert_not_called()
+
+
+def test_call_execute_without_session(faker):
+    builder = UpdateBuilder(User)
+
+    with pytest.raises(SessionNotProvidedError):
+        builder.where(User.email == faker.email()).execute()

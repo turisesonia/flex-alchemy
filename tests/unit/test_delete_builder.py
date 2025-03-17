@@ -10,6 +10,8 @@ from fluent_alchemy.builders.delete import DeleteBuilder
 
 from examples.models import User
 
+from fluent_alchemy.exceptions import SessionNotProvidedError
+
 
 @pytest.fixture
 def session(mocker) -> MagicMock:
@@ -72,3 +74,10 @@ def test_call_execute_with_not_commit(faker, session, builder: DeleteBuilder):
     builder.where(User.email == faker.email()).execute(session=session, commit=False)
     session.execute.assert_called_once()
     session.commit.assert_not_called()
+
+
+def test_call_execute_without_session(faker):
+    builder = DeleteBuilder(User)
+
+    with pytest.raises(SessionNotProvidedError):
+        builder.where(User.email == faker.email()).execute()

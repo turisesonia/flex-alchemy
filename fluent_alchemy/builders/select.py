@@ -89,7 +89,7 @@ class SelectBuilder(BaseWhereBuilder):
     def execute(
         self, session: Optional[Session] = None, *args, **kwargs
     ) -> Result:
-        session = session or self._session
+        session = self.get_session(session)
 
         stmt = self._build()
 

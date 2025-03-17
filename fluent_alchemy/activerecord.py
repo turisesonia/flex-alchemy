@@ -4,7 +4,6 @@ from sqlalchemy import Insert, Select, Update, Delete
 from sqlalchemy.orm import Session
 from sqlalchemy.engine.result import Result
 
-from .builders import _M
 from .session import ScopedSessionHandler
 from .builders.select import SelectBuilder
 from .builders.insert import InsertBuilder
@@ -14,36 +13,34 @@ from .builders.delete import DeleteBuilder
 T = t.TypeVar("T", bound="ActiveRecord")
 
 
-class ReturningParams(t.TypedDict):
-    cols: t.Union[_M, t.Iterable]
-    params: dict[str, t.Any]
-
-
 class ActiveRecord(ScopedSessionHandler):
-    __primary_key__: str = "id"
-
     @classmethod
     def select(cls: t.Type[T], *entities) -> SelectBuilder:
         return cls._new_select().select(*entities)
 
     @classmethod
-    def first(cls: t.Type[T], session: Session = None) -> t.Optional[T]:
+    def first(cls: t.Type[T], session: t.Optional[Session] = None) -> t.Optional[T]:
+        session = cls.get_session(session)
+
         return cls._new_select().execute(session=session).scalars().first()
 
     @classmethod
     def find(cls: t.Type[T], pk: t.Any, session: Session = None) -> t.Optional[T]:
-        session = session or cls._session
+        session = cls.get_session(session)
 
         return session.get(cls, pk)
 
     @classmethod
     def all(cls: t.Type[T], session: Session = None) -> t.Sequence[T]:
+        session = cls.get_session(session)
+
         return cls._new_select().execute(session=session).scalars().all()
 
     @classmethod
     def create(cls: t.Type[T], attributes: dict, session: Session = None) -> T:
-        instance = cls(**attributes)
+        session = cls.get_session(session)
 
+        instance = cls(**attributes)
         instance.save(session)
 
         return instance
@@ -94,7 +91,7 @@ class ActiveRecord(ScopedSessionHandler):
         *args,
         **kwargs,
     ) -> Result:
-        session = session or cls._session
+        session = cls.get_session(session)
 
         return session.execute(stmt, *args, **kwargs)
 
@@ -103,9 +100,9 @@ class ActiveRecord(ScopedSessionHandler):
     #     return cls()._new_select().paginate(page, per_page, **kwargs)
 
     def save(self, session: t.Optional[Session] = None, refresh: bool = True):
-        try:
-            session = session or self._session
+        session = self.get_session(session)
 
+        try:
             session.add(self)
             session.commit()
 
@@ -117,9 +114,9 @@ class ActiveRecord(ScopedSessionHandler):
             raise e
 
     def delete(self, session: t.Optional[Session] = None, commit: bool = True):
-        try:
-            session = session or self._session
+        session = self.get_session(session)
 
+        try:
             session.delete(self)
 
             if commit:

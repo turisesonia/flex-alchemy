@@ -3,6 +3,7 @@ import typing as t
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import BinaryExpression
 
+from ..exceptions import SessionNotProvidedError
 
 _M = t.TypeVar("_M")
 
@@ -14,6 +15,14 @@ class BaseBuilder(t.Generic[_M]):
 
         self._scopes = {}
         self._macros = {}
+
+    def get_session(self, session: t.Optional[Session] = None) -> Session:
+        session = session or self._session
+
+        if not session or not isinstance(session, Session):
+            raise SessionNotProvidedError
+
+        return session
 
     def execute(self):
         raise NotImplementedError
