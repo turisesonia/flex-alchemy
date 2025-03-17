@@ -1,250 +1,210 @@
-# Fluent Alchemy
+# Flex Alchemy
 
-輕鬆流暢地使用 SQLAclhemy
-
-- [Installation](#installation)
-- [Quick start](#quick-start)
-- [Features](#features)
-- [Mixins](#mixins)
-- [Examples](#examples)
+Use SQLAlchemy with Active Record pattern.
 
 ## Installation
 
 ```shell
-pip insall fluent-alchemy
+pip install flex-alchemy
 ```
 
-## Quick start
+## Quick Start
 
-1. 宣告 Models 並繼承 `ActiveRecord`
+1. Declare Models and inherit ActiveRecord
 
-```python
-# models.py
-from sqlalchemy.orm import DeclarativeBase
-from fluent_alchemy import ActiveRecord
+    ```python
+    # models.py
+    from sqlalchemy.orm import DeclarativeBase
+    from sqlalchemy import String, BigInteger, Boolean
+    from sqlalchemy.orm import Mapped, mapped_column
+    from flex_alchemy import ActiveRecord
 
-class Base(DeclarativeBase, ActiveRecord):
-    pass
+    class Base(DeclarativeBase, ActiveRecord):
+        pass
 
-class User(Base):
-    __tablename__ = "users"
+    class User(Base):
+        __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(BigInteger(), primary_key=True)
-    email: Mapped[str] = mapped_column(String(), unique=True)
-    password: Mapped[str] = mapped_column(String())
-    name: Mapped[str] = mapped_column(String(50))
-    state: Mapped[bool] = mapped_column(Boolean())
+        id: Mapped[int] = mapped_column(BigInteger(), primary_key=True)
+        email: Mapped[str] = mapped_column(String(), unique=True)
+        password: Mapped[str] = mapped_column(String())
+        name: Mapped[str] = mapped_column(String(50))
+        enable: Mapped[bool] = mapped_column(Boolean(), default=True)
+    ```
 
-```
+2. Create SQLAlchemy Engine, and assign to session handler in `ActiveRecord`
 
-2. 建立 SQLAclhemy Engine, 並指派給 `ActiveRecord` 內的 session handler
+    ```python
+    # database.py
+    from sqlalchemy import create_engine
+    from models import Base
 
-```python
-from sqlalchemy import create_engine
-from models import Base
+    engine = create_engine("sqlite:///:memory:")
 
-engine = create_engine("sqlite://:memory:", echo=True)
+    Base.make_session(engine)
+    ```
 
-Base.set_engine(engine)
-```
-
-3. 開始使用 model 操作 database !
-
-```python
-from models import User
-
-users = User.all()
-```
-
-4. 使用完畢後，釋放 Session 資源
-
-```python
-from models import Base
-
-Base.remove_scoped_session()
-```
-
-## Features
-
-### Active Record
-利用 `QueryBuilder` 來處理 SQLAlchemy 的 `select()` query statement
-
-- Create
+3. Start using model to operate database!
 
     ```python
     from models import User
 
-    user = User.create(
-        name="Justin",
-        email="corey97@example.org",
-        password="NioWe9Wn#+"
-    )
-
-    # or
-
-    user = User(
-        name="Justin",
-        email="corey97@example.org",
-        password="NioWe9Wn#+"
-    )
-    user.save()
+    users = User.all()
+    # [User(id=1), User(id=2), ...]
     ```
 
-- Read
-    1. Find by id
-
-        ```python
-        user = User.find(1)
-        ```
-
-    2. 只回傳特定欄位
-
-        ```python
-        user = User.select(User.id, User.name, User.email).first()
-        ```
-
-    3. 透過 `where` 增加查詢條件
-
-        ```python
-        user = User.where(User.email == "corey97@example.org").first()
-        ```
-
-        ```python
-        users = User.where(User.state.is_(True)).get()
-        ```
-
-- Update
-
+4. Release session resource after use
     ```python
-    user = User.find(1)
-    user.passwod = "6xjVAY$p&D"
+    from models import Base
 
-    user.save()
+    Base.teardown_session()
     ```
 
-- Delete
+## Usage
 
-    ```python
-    user = User.find(1)
-    user.delete()
-    ```
-
-- Pagenate
-
-    ```python
-    # setting page number and rows count per page
-    pagination = User.paginate(page=1, per_page=15)
-
-    """
-    {
-        "total": 100,
-        "per_page": 15,
-        "current_page": 1,
-        "last_page": 7,
-        "data": [ ... ], # ussers
-    }
-    """
-    ```
-
-
-## Mixins
-
-### [`TimestampMixin`](./fluent_alchemy/mixins/timestamp.py)
-
-讓指定的 Model class 繼承 `TimestampMixin`，讓該 Model 補上 `created_at`, `updated_at` 欄位。
+#### Create Records
 
 ```python
-from fluent_alchemy import ActiveRecord, TimestampMixin
+# Option #1: Use class method `create`
+user = User.create(
+    name="John Doe",
+    email="john.doe@example.com",
+    password="secure_password"
+)
 
-class Base(DeclarativeBase, ActiveRecord):
-    pass
+# Option #2: Create model instance and call `save` method
+user = User(
+    name="Jane Doe",
+    email="jane.doe@example.com",
+    password="another_password"
+)
+user.save()
+```
 
-class User(Base, TimestampMixin):
-    __tablename__ = "users"
-    ...
+#### Query Records
 
-###
+```python
+# find a record by primary key
 user = User.find(1)
 
-print(user.created_at)
-print(user.updated_at)
+# find all records
+all_users = User.all()
+
+# find a record with specific columns
+row = User.select(User.id, User.name, User.email).execute().first()
+
+# find records with conditions
+active_users = User.where(User.enable.is_(True)).execute().scalars().all()
 ```
 
-
-### [`SoftDeleteMixin`](./fluent_alchemy/mixins/softdelete.py)
-
-讓指定的 Model class 繼承 `SoftDeleteMixin`，就可以讓該 Model 擁有 Soft delete 的能力。
+#### Update Records
 
 ```python
-from sqlalchemy.orm import DeclarativeBase
-from fluent_alchemy import ActiveRecord, SoftDeleteMixin
-
-class Base(DeclarativeBase, ActiveRecord):
-    pass
-
-class User(Base, SoftDeleteMixin):
-    __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(BigInteger(), primary_key=True)
-    email: Mapped[str] = mapped_column(String(), unique=True)
-    password: Mapped[str] = mapped_column(String())
-    name: Mapped[str] = mapped_column(String(50))
-    state: Mapped[bool] = mapped_column(Boolean())
-```
-
-`SoftDeleteMixin` 會自動補上 `deleted_at` 欄位，依此欄位來處理 soft delete 的資料。
-
-```python
-deleted_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(), nullable=True)
-```
-
-設定完成後，之後對此 Model 進行 Query 時，會在 statement 內的 WHERE 條件自動加上 `deleted_at IS NULL`。
-
-#### 查詢已被標記刪除的資料
-```python
-users_deleted = User.where(...).get(with_trashed=True)
-```
-
-#### 強制刪除 (Force delete)
-```python
+# find a record and update it by calling `save` method
 user = User.find(1)
+user.name = "New Name"
+user.save()
 
-user.delete(force=True)
+# Update multiple records with conditions
+User.update(updated_at=datetime.now()).where(User.enalbe.is_(True)).execute()
+```
+
+#### Delete Records
+
+```python
+# delete a record by calling `delete` method
+user = User.find(1)
+user.delete()
+
+# delete multiple records
+User.destroy().where(User.enable.is_(False)).execute()
 ```
 
 ## Examples
 
-### 在 FastAPI 內使用
+### Use in FastAPI
 
 ```python
-
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
-from app.models import BaseModel, User
+from sqlalchemy import create_engine
+from app.models import Base, User
 
-def close_scoped_session():
-    """
-    Remove the scoped session at the enf of every request.
-    """
-    yield
-    BaseModel.remove_scoped_session()
+engine = create_engine("postgresql://user:password@localhost/dbname")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Set engine to the ScopedSessionHandler when FastAPI app started.
+    Make scoped session with engine when FastAPI start
     """
-    BaseModel.set_engine(engine)
+    Base.make_session(engine)
     yield
+
+def close_session():
+    """
+    cleanup scoped session after each request
+    """
+    yield
+    Base.teardown_session()
+
 
 app = FastAPI(
     title="MyApp",
-    dependencies=[Depends(close_scoped_session)],
-    lifespan=lifespan
+    lifespan=lifespan,
+    dependencies=[Depends(close_session)],
 )
 
 @app.get("/users")
 def index():
+    """get all users"""
     return User.all()
 
+@app.get("/users/{id_}")
+def show(id_: int):
+    """get user by id"""
+    return User.find(id_)
+
+@app.post("/users")
+def create(user_data: dict):
+    """create a new user"""
+    return User.create(user_data)
+```
+
+## Others
+
+### Use Session instead of Scoped Session
+
+`flex-alchemy` provides a way to use `Session` instead of `ScopedSession` by pass a `Session` instance to `execute` method.
+
+
+```python
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+engine = create_engine("sqlite:///:memory:")
+
+with Session(engine) as session:
+    # find all users
+    User.all(session=session)
+
+    # find a user by primary key
+    User.find(1, session=session)
+
+    # create a new user
+    User.create({
+        "name": "New User",
+        "email": "example@mail.com"
+        "password": "password"
+    }, session=session)
+
+    user = User(
+        name="New User",
+        email="example@mail.com",
+        password="password"
+    )
+    user.save(session=session)
+
+    User.where(User.enable.is_(True)).execute(session=session).scalars().all()
+
+    ... etc
 ```
